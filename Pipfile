@@ -20,6 +20,8 @@ passlib = "*"
 colour = "*"
 intervals = "*"
 marshmallow-sqlalchemy = "*"
+mixer = "*"
+"psycopg2" = "*"
 
 
 [dev-packages]

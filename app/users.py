@@ -1,0 +1,87 @@
+from .addons import db, ma
+
+from sqlalchemy_utils import PasswordType, EmailType, UUIDType, ColorType  #,NumericRangeType
+from flask import jsonify
+
+
+class User(db.Model):
+    """This class represents the users table.
+    User represent the generic concept of user of a service.
+    """
+
+    __tablename__ = 'users'
+
+    id = db.Column(db.Integer, primary_key=True)
+    uuid = db.Column(UUIDType(binary=False))  # http://docs.sqlalchemy.org/en/rel_0_9/core/custom_types.html?highlight=guid#backend-agnostic-guid-type
+    nick = db.Column(db.String)
+    email = db.Column(EmailType())  # TODO : support multiple with primary contact point (github style)
+    password = db.Column(PasswordType(
+        schemes=[
+            'pbkdf2_sha512',
+        ],
+    ))
+    designer = db.Column(db.Boolean)  # wether this user is also a designer and can edit the races table
+
+    # authoring
+    date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
+    date_modified = db.Column(
+        db.DateTime, default=db.func.current_timestamp(),
+        onupdate=db.func.current_timestamp())
+
+    # def __init__(self, nick, email):
+    #     """initialize with name."""
+    #     self.nick = nick
+    #     self.email = email
+
+    def save(self):
+        db.session.add(self)
+        db.session.commit()
+
+    @staticmethod
+    def all():
+        return User.query.all()
+
+    def delete(self):
+        db.session.delete(self)
+        db.session.commit()
+
+    def __repr__(self):
+        return "<User: {}>".format(self.name)
+
+
+class UserSchema(ma.Schema):
+    class Meta:
+        # Fields to expose
+        fields = ('nick', 'email', 'date_created')
+        # Smart hyperlinking
+        # _links = ma.Hyperlinks({
+        #     'self': ma.URLFor('author_detail', id='<id>'),
+        #     'collection': ma.URLFor('authors')
+        # })
+
+
+user_schema = UserSchema()
+users_schema = UserSchema(many=True)
+
+
+def users():
+    all_users = User.all()
+    result = users_schema.dump(all_users)
+    return jsonify(result.data)
+    # OR
+    # return user_schema.jsonify(all_users)
+
+
+def user_detail(id):
+    user = User.query.get(id)
+    return user_schema.jsonify(user)
+# {
+#     "email": "fred@queen.com",
+#     "date_created": "Fri, 25 Apr 2014 06:02:56 -0000",
+#     "_links": {
+#         "self": "/api/authors/42",
+#         "collection": "/api/authors/"
+#     }
+# }
+
+
