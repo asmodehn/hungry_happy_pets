@@ -2,6 +2,9 @@ import unittest
 import os
 import json
 
+from hypothesis import given
+import hypothesis.strategies as st
+
 from mixer.backend.sqlalchemy import TypeMixer
 from mixer.backend.flask import mixer
 
@@ -45,17 +48,28 @@ class UserTestCase(unittest.TestCase):
     #     self.assertEqual(res.status_code, 201)
     #     self.assertIn('Go to Borabora', str(res.data))
 
-    def test_api_can_get_users(self):
+    @given(nick=st.text(), email=st.text())
+    def test_api_can_get_users(self, nick, email):
         """Test API can get a user (GET request)."""
 
         # binds the app to the current context
         with self.app.app_context():
             # Generate 10 random user test model in DB
-            test_models = mixer.cycle(10).blend(User, nick=mixer.RANDOM, email=mixer.RANDOM)
+            # test_models = mixer.cycle(10).blend(User, nick=mixer.RANDOM, email=mixer.RANDOM)
+
+            # generating a user from hypothesis data via marshmallow
+            user_loaded = user_schema.load({'nick': nick, 'email': email})
+            user = user_loaded.data
+            print(user)
+
+            # writing to DB
+            user.save()
 
             result = self.client().get('/api/users/')
             self.assertEqual(result.status_code, 200)
             test_data = json.loads(result.data.decode('utf-8'))
+
+            print(test_data)
 
             # TODO assert
             # for m in test_models:
@@ -70,18 +84,30 @@ class UserTestCase(unittest.TestCase):
             #     m = user_schema.load(d)
             #     self.assertIn(m, test_models)
 
-    def test_api_can_get_user_by_id(self):
+    @given(nick=st.text(), email=st.text())
+    def test_api_can_get_user_by_id(self, nick, email):
         """Test API can get a single user by using it's id."""
         # binds the app to the current context
         with self.app.app_context():
             # Generate a random user test model in DB
-            test_model = mixer.blend(User, nick='testuser', email='tester@comp.any')
+            # user = mixer.blend(User, nick='testuser', email='tester@comp.any')
 
-            result = self.client().get('/api/users/{}'.format(test_model.id))
+            # generating a user from hypothesis data via marshmallow
+            user_loaded = user_schema.load({'nick': nick, 'email': email})
+            user = user_loaded.data
+            #print(user)
+
+            # writing to DB
+            user.save()
+
+            result = self.client().get('/api/users/{}'.format(user.id))
             self.assertEqual(result.status_code, 200)
             test_data = json.loads(result.data.decode('utf-8'))
-            self.assertEqual(test_data.get('nick'), test_model.nick)
-            self.assertEqual(test_data.get('email'), test_model.email)
+            self.assertEqual(test_data.get('nick'), user.nick)
+            self.assertEqual(test_data.get('email'), user.email)
+            #print(test_data)
+
+
     #
     # def test_bucketlist_can_be_edited(self):
     #     """Test API can edit an existing bucketlist. (PUT request)"""

@@ -22,6 +22,7 @@ intervals = "*"
 marshmallow-sqlalchemy = "*"
 mixer = "*"
 "psycopg2" = "*"
+hypothesis = "*"
 
 
 [dev-packages]

@@ -1,12 +1,28 @@
-from .addons import db, ma
+import doctest
+
+try:
+    from .addons import db, ma
+except SystemError:  # in case we call this module directly (doctest)
+    from addons import db, ma
 
 from sqlalchemy_utils import PasswordType, EmailType, UUIDType, ColorType  #,NumericRangeType
 from flask import jsonify
+from marshmallow import post_load
 
 
 class User(db.Model):
     """This class represents the users table.
     User represent the generic concept of user of a service.
+
+    >>> from addons import db
+    >>> from mixer.backend.sqlalchemy import Mixer
+    >>> engine = db.create_engine('sqlite:///:memory:')
+    >>> Session = db.sessionmaker(bind=engine)
+
+    >>> mixer = Mixer(session=Session(), commit=False)
+    >>> user = mixer.blend('app.users.User', nick='testuser', email='tester@comp.any')
+    >>> user
+    <User: testuser>
     """
 
     __tablename__ = 'users'
@@ -46,10 +62,25 @@ class User(db.Model):
         db.session.commit()
 
     def __repr__(self):
-        return "<User: {}>".format(self.name)
+        return "<User: {}>".format(self.nick)
 
 
 class UserSchema(ma.Schema):
+
+    """This class represents the users table.
+    User represent the generic concept of user of a service.
+
+    >>> from addons import db
+    >>> from mixer.backend.marshmallow import Mixer
+    >>> engine = db.create_engine('sqlite:///:memory:')
+    >>> Session = db.sessionmaker(bind=engine)
+
+    >>> mixer = Mixer(session=Session(), commit=False)
+    >>> user = mixer.blend('app.users.UserSchema', nick='testuser', email='tester@comp.any')
+    >>> user
+    <User: testuser>
+    """
+
     class Meta:
         # Fields to expose
         fields = ('nick', 'email', 'date_created')
@@ -58,6 +89,10 @@ class UserSchema(ma.Schema):
         #     'self': ma.URLFor('author_detail', id='<id>'),
         #     'collection': ma.URLFor('authors')
         # })
+
+    @post_load
+    def make_user(self, data):
+        return User(**data)
 
 
 user_schema = UserSchema()
@@ -83,5 +118,10 @@ def user_detail(id):
 #         "collection": "/api/authors/"
 #     }
 # }
+
+
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod(verbose=True)
 
 
