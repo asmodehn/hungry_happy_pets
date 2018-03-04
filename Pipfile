@@ -7,6 +7,19 @@ name = "pypi"
 
 [packages]
 
+flask = "*"
+sqlalchemy = "*"
+marshmallow = "*"
+alembic = "*"
+flask-sqlalchemy = "*"
+flask-marshmallow = "*"
+flask-api = "*"
+flask-migrate = "*"
+sqlalchemy-utils = "*"
+passlib = "*"
+colour = "*"
+intervals = "*"
+marshmallow-sqlalchemy = "*"
 
 
 [dev-packages]

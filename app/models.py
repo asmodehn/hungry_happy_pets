@@ -1,6 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 
-from sqlalchemy_utils import PasswordType, EmailType, UUIDType, ColorType, NumericRangeType
+from sqlalchemy_utils import PasswordType, EmailType, UUIDType, ColorType  #,NumericRangeType
 
 # initialize sql-alchemy
 db = SQLAlchemy()
@@ -46,7 +46,7 @@ class User(db.Model):
         db.session.commit()
 
     @staticmethod
-    def get_all():
+    def all():
         return User.query.all()
 
     def delete(self):
@@ -107,9 +107,9 @@ class Race(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255))
     color = db.Column(ColorType)  # some visible attribute for user & designers
-    happy_range = db.Column(NumericRangeType)
+    #happy_range = db.Column(NumericRangeType)
     happy_rate = db.Column(db.Numeric(precision=None, scale=None, decimal_return_scale=None, asdecimal=True))
-    hunger_range = db.Column(NumericRangeType)
+    #hunger_range = db.Column(NumericRangeType)
     hunger_rate = db.Column(db.Numeric(precision=None, scale=None, decimal_return_scale=None, asdecimal=True))
 
     # authoring

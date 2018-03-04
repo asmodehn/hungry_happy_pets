@@ -10,10 +10,10 @@ from flask_migrate import Migrate
 # TODO : change this after first version working
 config_name = os.getenv('APP_SETTINGS') or "development"
 
-# instantiate the app
+# instantiate the app ( access via "flask shell" or "flask run" command )
 app, db = create_app(config_name)
 
-# instantiate migration context
+# instantiate migration context ( access via "flask db" command )
 migrate = Migrate(app, db)
 
 

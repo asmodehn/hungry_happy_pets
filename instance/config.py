@@ -10,7 +10,7 @@ class Config(object):
 class DevelopmentConfig(Config):
     """Configurations for Development."""
     DEBUG = True
-    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL') or 'sqlite:////tmp/bored_hungry_blobs.db'  # sqlite by default
+    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL') or 'sqlite:////tmp/hungry_happy_pets.db'  # sqlite by default
 
 class TestingConfig(Config):
     """Configurations for Testing, with a separate test database."""

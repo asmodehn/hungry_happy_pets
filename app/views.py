@@ -1,11 +1,9 @@
 from flask import jsonify
 
-from . import app
 from .models import User
 from .schemas import user_schema, users_schema
 
 
-@app.route('/api/users/')
 def users():
     all_users = User.all()
     result = users_schema.dump(all_users)
@@ -14,7 +12,6 @@ def users():
     # return user_schema.jsonify(all_users)
 
 
-@app.route('/api/users/<id>')
 def user_detail(id):
     user = User.get(id)
     return user_schema.jsonify(user)
