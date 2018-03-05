@@ -7,7 +7,7 @@ from flask_api import FlaskAPI
 # TODO : nice entity association ascii art
 
 from .addons import db, ma
-from .users import users, user_detail
+from .users import users, user_read, user_edit, user_add, user_delete
 from .owners import owners, owner_detail
 from .species import species, species_detail
 from .animals import animals, animals_detail
@@ -32,15 +32,18 @@ def create_app(config_name):
 
     # setup routing (has to be done dynamically, and not on import).
     app.add_url_rule('/api/users/', view_func=users)
-    app.add_url_rule('/api/users/<id>', view_func=user_detail)
+    app.add_url_rule('/api/users/<id>', view_func=user_read, methods=["GET"])
+    app.add_url_rule('/api/users/<id>', view_func=user_edit, methods=["PUT"])
+    app.add_url_rule('/api/users/', view_func=user_add, methods=["POST"])
+    app.add_url_rule('/api/users/<id>', view_func=user_delete, methods=["DELETE"])
 
     app.add_url_rule('/api/owners/', view_func=owners)
-    app.add_url_rule('/api/owners/<id>', view_func=user_detail)
+    app.add_url_rule('/api/owners/<id>', view_func=owner_detail)
 
     app.add_url_rule('/api/species/', view_func=species)
-    app.add_url_rule('/api/species/<id>', view_func=user_detail)
+    app.add_url_rule('/api/species/<id>', view_func=species_detail)
 
-    app.add_url_rule('/api/animals/', view_func=species)
-    app.add_url_rule('/api/animals/<id>', view_func=user_detail)
+    app.add_url_rule('/api/animals/', view_func=animals)
+    app.add_url_rule('/api/animals/<id>', view_func=animals_detail)
 
     return app
