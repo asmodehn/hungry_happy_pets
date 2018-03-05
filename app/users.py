@@ -29,7 +29,7 @@ class User(db.Model):
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key=True)
-    uuid = db.Column(UUIDType(binary=False))  # http://docs.sqlalchemy.org/en/rel_0_9/core/custom_types.html?highlight=guid#backend-agnostic-guid-type
+    #uuid = db.Column(UUIDType(binary=False))  # http://docs.sqlalchemy.org/en/rel_0_9/core/custom_types.html?highlight=guid#backend-agnostic-guid-type
     nick = db.Column(db.String)
     email = db.Column(EmailType())  # TODO : support multiple with primary contact point (github style)
     password = db.Column(PasswordType(
@@ -37,7 +37,7 @@ class User(db.Model):
             'pbkdf2_sha512',
         ],
     ))
-    designer = db.Column(db.Boolean)  # wether this user is also a designer and can edit the races table
+    designer = db.Column(db.Boolean)  # whether this user is also a designer and can edit the races table
 
     # authoring
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())

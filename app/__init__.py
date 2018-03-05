@@ -17,7 +17,7 @@ from instance.config import app_config
 
 
 def create_app(config_name):
-    app = FlaskAPI(__name__, instance_relative_config=True)
+    app = FlaskAPI("hhp", instance_relative_config=True)
 
     # http://flask.pocoo.org/docs/0.12/config/
     app.config.from_object(app_config[config_name])
@@ -31,6 +31,7 @@ def create_app(config_name):
     ma.init_app(app)
 
     # setup routing (has to be done dynamically, and not on import).
+    # TODO : api in blue print... ( check with flask api )
     app.add_url_rule('/api/users/', view_func=users)
     app.add_url_rule('/api/users/<id>', view_func=user_read, methods=["GET"])
     app.add_url_rule('/api/users/<id>', view_func=user_edit, methods=["PUT"])

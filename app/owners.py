@@ -13,7 +13,7 @@ class Owner(db.Model):
     __tablename__ = 'owners'
 
     id = db.Column(db.Integer, primary_key=True)
-    uuid = db.Column(UUIDType(binary=False))  # http://docs.sqlalchemy.org/en/rel_0_9/core/custom_types.html?highlight=guid#backend-agnostic-guid-type
+    #uuid = db.Column(UUIDType(binary=False))  # http://docs.sqlalchemy.org/en/rel_0_9/core/custom_types.html?highlight=guid#backend-agnostic-guid-type
     name = db.Column(db.String)
 
 

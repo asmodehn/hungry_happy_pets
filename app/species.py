@@ -11,7 +11,7 @@ class Species(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255))
-    color = db.Column(ColorType)  # some visible attribute for user & designers
+    #color = db.Column(ColorType)  # some visible attribute for user & designers
     #happy_range = db.Column(NumericRangeType)
     happy_rate = db.Column(db.Numeric(precision=None, scale=None, decimal_return_scale=None, asdecimal=True))
     #hunger_range = db.Column(NumericRangeType)

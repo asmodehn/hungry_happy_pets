@@ -2,7 +2,7 @@ import os
 
 import click
 
-from app import create_app
+from app import create_app, db
 
 from flask_migrate import Migrate
 
@@ -11,7 +11,7 @@ from flask_migrate import Migrate
 config_name = os.getenv('APP_SETTINGS') or "development"
 
 # instantiate the app ( access via "flask shell" or "flask run" command )
-app, db = create_app(config_name)
+app = create_app(config_name)
 
 # instantiate migration context ( access via "flask db" command )
 migrate = Migrate(app, db)
