@@ -6,6 +6,8 @@ from flask_api import FlaskAPI
 # Animals *-1 Owner
 # TODO : nice entity association ascii art
 
+# Note here we try to keep a bijective ORM - Schema - REST resource relationship, to keep app structure simple
+
 from .addons import db, ma
 from .users import users, user_read, user_edit, user_add, user_delete
 from .owners import owners, owner_detail
@@ -17,7 +19,7 @@ from instance.config import app_config
 
 
 def create_app(config_name):
-    app = FlaskAPI("hhp", instance_relative_config=True)
+    app = FlaskAPI(__name__, instance_relative_config=True)  # __name__ is required to find the instance folder
 
     # http://flask.pocoo.org/docs/0.12/config/
     app.config.from_object(app_config[config_name])

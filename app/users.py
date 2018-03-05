@@ -85,6 +85,8 @@ class UserSchema(ma.Schema):
     class Meta:
         # Fields to expose
         fields = ('id', 'nick', 'email', 'date_created')
+        exclude = ("password",)
+        dump_only = ('id', )
         # Smart hyperlinking
         # _links = ma.Hyperlinks({
         #     'self': ma.URLFor('author_detail', id='<id>'),
@@ -102,12 +104,23 @@ users_schema = UserSchema(many=True)
 
 def users():
     all_users = User.all()
-    return user_schema.jsonify(all_users, many=True)
+    user_dict, errors = user_schema.dump(all_users, many=True)
+    if not errors:
+        return user_dict
+    else:  # break properly
+        return '', http.HTTPStatus.INTERNAL_SERVER_ERROR
 
 
 def user_read(id):
     user = User.query.get(id)
-    return user_schema.jsonify(user), http.HTTPStatus.OK if user else http.HTTPStatus.NOT_FOUND
+    if not user:
+        return '', http.HTTPStatus.NOT_FOUND
+    user_dict, errors = user_schema.dump(user)
+    if not errors:
+        return user_dict
+    else:  # break properly
+        return '', http.HTTPStatus.INTERNAL_SERVER_ERROR
+
 
 # {
 #     "email": "fred@queen.com",
@@ -122,9 +135,18 @@ def user_read(id):
 def user_edit(id):
     data = request.get_json()
     user = User.query.get(id)
+
+    if not user:
+        return '', http.HTTPStatus.NOT_FOUND
+
     for k, v in data.items():
         setattr(user, k, v)
-    return user_schema.jsonify(user), http.HTTPStatus.OK
+
+    user_dict, errors = user_schema.dump(user)
+    if not errors:
+        return user_dict
+    else:  # break properly
+        return '', http.HTTPStatus.INTERNAL_SERVER_ERROR
 
 
 def user_add():
@@ -132,16 +154,21 @@ def user_add():
     user, errors = user_schema.load(data, )
     if not errors:
         user.save()
-        return user_schema.jsonify(user), http.HTTPStatus.CREATED
-    else:  # TODO test this
-        return '{error : "meaningful message"}', http.HTTPStatus.INTERNAL_SERVER_ERROR # TODO refine this
+
+    user_dict, errors = user_schema.dump(user)
+    if not errors:
+        return user_dict, http.HTTPStatus.CREATED
+    else:  # break properly
+        return '', http.HTTPStatus.INTERNAL_SERVER_ERROR
 
 
 def user_delete(id):
     user = User.query.get(id)
     if user:
         user.delete()
-    return '', http.HTTPStatus.NO_CONTENT if user else http.HTTPStatus.NOT_FOUND
+        return '', http.HTTPStatus.NO_CONTENT
+    else:
+        return '', http.HTTPStatus.NOT_FOUND
 
 if __name__ == "__main__":
     import doctest
