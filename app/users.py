@@ -2,8 +2,10 @@ import http
 
 try:
     from .addons import db, ma
+    from .owners import Owner
 except SystemError:  # in case we call this module directly (doctest)
     from addons import db, ma
+    from owners import Owner
 
 from sqlalchemy_utils import PasswordType, EmailType, UUIDType  #,NumericRangeType
 from flask import jsonify, request
@@ -14,15 +16,19 @@ class User(db.Model):
     """This class represents the users table.
     User represent the generic concept of user of a service.
 
-    >>> from addons import db
-    >>> from mixer.backend.sqlalchemy import Mixer
-    >>> engine = db.create_engine('sqlite:///:memory:')
-    >>> Session = db.sessionmaker(bind=engine)
+    Usage through sqlalchemy :
+    >>> import sqlalchemy
+    >>> engine = sqlalchemy.create_engine('sqlite:///:memory:')
+    >>> Session = sqlalchemy.orm.sessionmaker(bind=engine)
+    >>> session = Session()
 
-    >>> mixer = Mixer(session=Session(), commit=False)
-    >>> user = mixer.blend('app.users.User', nick='testuser', email='tester@comp.any')
-    >>> user
-    <User: testuser>
+    >>> import species  #import other modules to resolve relationships
+    >>> User.metadata.create_all(engine)
+    >>> user_data = User(nick='testuser', email='tester@comp.any')
+    >>> session.add(user_data)
+    >>> session.commit()
+    >>> session.query(User).all()
+    [<User: testuser>]
     """
 
     __tablename__ = 'users'
@@ -45,6 +51,7 @@ class User(db.Model):
         db.DateTime, default=db.func.current_timestamp(),
         onupdate=db.func.current_timestamp())
 
+    # https://github.com/klen/mixer#support-for-flask-sqlalchemy-models-that-have-init-arguments
     # def __init__(self, nick, email):
     #     """initialize with name."""
     #     self.nick = nick
@@ -66,22 +73,36 @@ class User(db.Model):
         return "<User: {}>".format(self.nick)
 
 
-class UserSchema(ma.Schema):
+class UserSchema(ma.ModelSchema):
 
     """This class represents the users table.
     User represent the generic concept of user of a service.
 
-    >>> from addons import db
-    >>> from mixer.backend.marshmallow import Mixer
-    >>> engine = db.create_engine('sqlite:///:memory:')
-    >>> Session = db.sessionmaker(bind=engine)
+    Usage through marshmallow-sqlalchemy:
+    >>> import sqlalchemy
+    >>> engine = sqlalchemy.create_engine('sqlite:///:memory:')
+    >>> Session = sqlalchemy.orm.sessionmaker(bind=engine)
+    >>> session = Session()
 
-    >>> mixer = Mixer(session=Session(), commit=False)
-    >>> user = mixer.blend('app.users.UserSchema', nick='testuser', email='tester@comp.any')
-    >>> user
+    >>> import species  #import other modules to resolve relationships
+    >>> User.metadata.create_all(engine)
+    >>> user_data = User(nick='testuser', email='tester@comp.any')
+    >>> session.add(user_data)
+    >>> session.commit()
+    >>> session.query(User).all()
+    [<User: testuser>]
+
+    >>> dump_data = user_schema.dump(user_data).data
+    >>> import pprint  #ordering dict output
+    >>> pprint.pprint(dump_data)  # doctest: +ELLIPSIS
+    {'date_created': '...',
+     'email': 'tester@comp.any',
+     'id': 1,
+     'nick': 'testuser'}
+
+    >>> user_schema.load(dump_data, session=session).data
     <User: testuser>
 
-    # TODO : schema use as dict
     """
 
     class Meta:
@@ -94,10 +115,7 @@ class UserSchema(ma.Schema):
         #     'self': ma.URLFor('author_detail', id='<id>'),
         #     'collection': ma.URLFor('authors')
         # })
-
-    @post_load
-    def make_user(self, data):
-        return User(**data)
+        model = User
 
 
 user_schema = UserSchema()

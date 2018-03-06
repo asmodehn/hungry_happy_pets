@@ -10,7 +10,31 @@ from flask import jsonify
 
 
 class Animal(db.Model):
-    """This class represents the animals table."""
+    """This class represents the animals table.
+    A Pet is part of a species and belongs to an owner
+
+    Usage through sqlalchemy :
+    >>> import sqlalchemy
+    >>> engine = sqlalchemy.create_engine('sqlite:///:memory:')
+    >>> Session = sqlalchemy.orm.sessionmaker(bind=engine)
+    >>> session = Session()
+
+    >>> import species, users, owners  #import other modules to resolve relationships
+    >>> Animal.metadata.create_all(engine)
+
+    >>> animal_data = Animal(name='testanimal', happy=4, hungry=42)
+    >>> animal_data.species = species.Species(name='testspecies', happy_rate=0.5, hunger_rate=2.3)
+    >>> test_owner = owners.Owner()
+    >>> test_owner.user = users.User(nick='testuser', email='tester@comp.any')
+    >>> animal_data.owner = test_owner
+
+    >>> session.add(animal_data)
+    >>> session.commit()
+    >>> session.query(Animal).all()
+    [<Animal: testanimal>]
+    >>> session.query(owners.Owner).all()
+    [<Owner: <User: testuser> [<Animal: testanimal>]>]
+    """
 
     __tablename__ = 'animals'
 
@@ -27,9 +51,10 @@ class Animal(db.Model):
         db.DateTime, default=db.func.current_timestamp(),
         onupdate=db.func.current_timestamp())
 
-    def __init__(self, name):
-        """initialize with name."""
-        self.name = name
+    #https://github.com/klen/mixer#support-for-flask-sqlalchemy-models-that-have-init-arguments
+    # def __init__(self, name):
+    #     """initialize with name."""
+    #     self.name = name
 
     def save(self):
         db.session.add(self)
@@ -48,7 +73,46 @@ class Animal(db.Model):
 
 
 
-class AnimalSchema(ma.Schema):
+class AnimalSchema(ma.ModelSchema):
+    """This class represents the animals table.
+        A Pet is part of a species and belongs to an owner
+
+    Usage through marshmallow-sqlalchemy:
+    >>> import sqlalchemy
+    >>> engine = sqlalchemy.create_engine('sqlite:///:memory:')
+    >>> Session = sqlalchemy.orm.sessionmaker(bind=engine)
+    >>> session = Session()
+
+    >>> import species, users, owners  #import other modules to resolve relationships
+    >>> Animal.metadata.create_all(engine)
+
+    >>> animal_data = Animal(name='testanimal', happy=4, hungry=42)
+    >>> animal_data.species = species.Species(name='testspecies', happy_rate=0.5, hunger_rate=2.3)
+    >>> test_owner = owners.Owner()
+    >>> test_owner.user = users.User(nick='testuser', email='tester@comp.any')
+    >>> animal_data.owner = test_owner
+
+    >>> session.add(animal_data)
+    >>> session.commit()
+    >>> session.query(Animal).all()
+    [<Animal: testanimal>]
+    >>> session.query(owners.Owner).all()
+    [<Owner: <User: testuser> [<Animal: testanimal>]>]
+
+    >>> dump_data = animal_schema.dump(animal_data).data
+    >>> import pprint  #ordering dict output
+    >>> pprint.pprint(dump_data)  # doctest: +ELLIPSIS
+    {'date_created': '...',
+     'date_modified': '...',
+     'happy': 4,
+     'hungry': 42,
+     'id': 1,
+     'name': 'testanimal'}
+
+    >>> animal_schema.load(dump_data, session=session).data
+    <Animal: testanimal>
+    """
+
     class Meta:
         model = Animal
     #author = ma.HyperlinkRelated('owner')
@@ -75,3 +139,8 @@ def animals_detail(id):
 #         "collection": "/api/authors/"
 #     }
 # }
+
+
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod(verbose=True)

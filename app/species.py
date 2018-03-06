@@ -16,17 +16,21 @@ from flask import jsonify, request
 
 class Species(db.Model):
     """This class represents the races table.
-    Race is used to design our pet game and is not modifiable by the user.
+    Species is used to design our pet game and is not modifiable by the user.
 
-    >>> from addons import db
-    >>> from mixer.backend.sqlalchemy import Mixer
-    >>> engine = db.create_engine('sqlite:///:memory:')
-    >>> Session = db.sessionmaker(bind=engine)
+    Usage through sqlalchemy :
+    >>> import sqlalchemy
+    >>> engine = sqlalchemy.create_engine('sqlite:///:memory:')
+    >>> Session = sqlalchemy.orm.sessionmaker(bind=engine)
+    >>> session = Session()
 
-    >>> mixer = Mixer(session=Session(), commit=False)
-    >>> species = mixer.blend('app.species.Species', name='testspecies', happy_rate=0.5, hunger_rate=2.3)
-    >>> species
-    <Species: testspecies>
+    >>> import users, owners  #import other modules to resolve relationships
+    >>> Species.metadata.create_all(engine)
+    >>> species_data = Species(name='testspecies', happy_rate=5, hunger_rate=23)
+    >>> session.add(species_data)
+    >>> session.commit()
+    >>> session.query(Species).all()
+    [<Species: testspecies>]
     """
 
     __tablename__ = 'species'
@@ -49,6 +53,7 @@ class Species(db.Model):
         db.DateTime, default=db.func.current_timestamp(),
         onupdate=db.func.current_timestamp())
 
+    #https://github.com/klen/mixer#support-for-flask-sqlalchemy-models-that-have-init-arguments
     # def __init__(self, name):
     #     """initialize with name."""
     #     self.name = name
@@ -69,23 +74,35 @@ class Species(db.Model):
         return "<Species: {}>".format(self.name)
 
 
-class SpeciesSchema(ma.Schema):
+class SpeciesSchema(ma.ModelSchema):
     """
-    >>> from addons import db
-    >>> from mixer.backend.sqlalchemy import Mixer
-    >>> engine = db.create_engine('sqlite:///:memory:')
-    >>> Session = db.sessionmaker(bind=engine)
+    Usage through marshmallow-sqlalchemy:
+    >>> import sqlalchemy
+    >>> engine = sqlalchemy.create_engine('sqlite:///:memory:')
+    >>> Session = sqlalchemy.orm.sessionmaker(bind=engine)
+    >>> session = Session()
 
-    >>> mixer = Mixer(session=Session(), commit=False)
-    >>> species = mixer.blend('app.species.Species', name='testspecies', happy_rate=0.5, hunger_rate=2.3)
-    >>> species
+    >>> import users, owners  #import other modules to resolve relationships
+    >>> Species.metadata.create_all(engine)
+
+    >>> species_data = Species(name='testspecies', happy_rate=5, hunger_rate=23)
+    >>> session.add(species_data)
+    >>> session.commit()
+    >>> session.query(Species).all()
+    [<Species: testspecies>]
+
+    >>> dump_data = species_schema.dump(species_data).data
+    >>> import pprint  #ordering dict output
+    >>> pprint.pprint(dump_data)  # doctest: +ELLIPSIS
+    {'happy_rate': 5, 'hunger_rate': 23, 'id': 1, 'name': 'testspecies'}
+
+    >>> species_schema.load(dump_data, session=session).data
     <Species: testspecies>
-
-    #TODO get dict to use schema
     """
     class Meta:
         fields = ('id', 'name', 'happy_rate', 'hunger_rate')
         dump_only = ('id', )
+        model = Species
 
     # author = ma.Nested(AuthorSchema)
 
@@ -96,9 +113,6 @@ class SpeciesSchema(ma.Schema):
     #     model = Species
     #members = ma.HyperlinkRelated('members')
 
-    @post_load
-    def make_species(self, data):
-        return Species(**data)
 
 
 species_schema = SpeciesSchema()
@@ -173,3 +187,8 @@ def species_delete(id):
         return '', http.HTTPStatus.NO_CONTENT
     else:
         return '', http.HTTPStatus.NOT_FOUND
+
+
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod(verbose=True)

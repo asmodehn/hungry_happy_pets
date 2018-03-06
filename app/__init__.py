@@ -28,9 +28,7 @@ def create_app(config_name):
     # https://stackoverflow.com/questions/33738467/how-do-i-know-if-i-can-disable-sqlalchemy-track-modifications
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-    # Order matters: Initialize SQLAlchemy before Marshmallow
-    db.init_app(app)
-    ma.init_app(app)
+    addons.init(app)
 
     # setup routing (has to be done dynamically, and not on import).
     # TODO : api in blue print... ( check with flask api )
