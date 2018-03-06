@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "5c89a8759ed7ab3238b94ed2ed8f13f94cfca43cc735c5fe54225bbfad7e9ff4"
+            "sha256": "296d7434f476b1efb8a7712a34ff8c71252344fed5f28dce24c938dca3373138"
         },
         "host-environment-markers": {
             "implementation_name": "cpython",
@@ -139,9 +139,9 @@
         },
         "hypothesis": {
             "hashes": [
-                "sha256:bbc087781000b0e461a6c5834c317f3eb1c409d5baa4192378102eaaafe34946"
+                "sha256:b26943fa3e0dc7127671cf37822bf061b83cc31d4ac23ceb0ebc12f93b1933ce"
             ],
-            "version": "==3.47.0"
+            "version": "==3.48.1"
         },
         "infinity": {
             "hashes": [
@@ -186,13 +186,6 @@
                 "sha256:d3f31fe7be2106b1d783cbd0765ef4e1c6615505514695f33082805f929dd584"
             ],
             "version": "==2.15.0"
-        },
-        "marshmallow-sqlalchemy": {
-            "hashes": [
-                "sha256:3e034964d09d1af15f6868a36cc26ec22d41a703e576928ba086996ae4287e59",
-                "sha256:9804ef2829f781f469a06528d107c2a763f109c687266ab8b1f000f9684184ae"
-            ],
-            "version": "==0.13.2"
         },
         "mixer": {
             "hashes": [

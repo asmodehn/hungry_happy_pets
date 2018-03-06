@@ -1,7 +1,12 @@
-from .addons import db, ma
+try:
+    from .addons import db, ma
+except SystemError:  # in case we call this module directly (doctest)
+    from addons import db, ma
+
 
 from sqlalchemy_utils import PasswordType, EmailType, UUIDType, ColorType  #,NumericRangeType
 from flask import jsonify
+
 
 
 class Animal(db.Model):
@@ -13,6 +18,8 @@ class Animal(db.Model):
     name = db.Column(db.String(255))
     happy = db.Column(db.Integer())
     hungry = db.Column(db.Integer())
+    owner_id = db.Column(db.Integer, db.ForeignKey('owners.id'), nullable=False)
+    species_id = db.Column(db.Integer, db.ForeignKey('species.id'), nullable=False)
 
     # authoring
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
@@ -44,7 +51,7 @@ class Animal(db.Model):
 class AnimalSchema(ma.Schema):
     class Meta:
         model = Animal
-    author = ma.HyperlinkRelated('owner')
+    #author = ma.HyperlinkRelated('owner')
 
 
 animal_schema = AnimalSchema()

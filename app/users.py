@@ -1,4 +1,3 @@
-import doctest
 import http
 
 try:
@@ -38,6 +37,7 @@ class User(db.Model):
         ],
     ))
     designer = db.Column(db.Boolean)  # whether this user is also a designer and can edit the races table
+    owners = db.relationship('Owner', backref='user', lazy=True)
 
     # authoring
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
@@ -80,6 +80,8 @@ class UserSchema(ma.Schema):
     >>> user = mixer.blend('app.users.UserSchema', nick='testuser', email='tester@comp.any')
     >>> user
     <User: testuser>
+
+    # TODO : schema use as dict
     """
 
     class Meta:
@@ -99,7 +101,6 @@ class UserSchema(ma.Schema):
 
 
 user_schema = UserSchema()
-users_schema = UserSchema(many=True)
 
 
 def users():

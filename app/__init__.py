@@ -9,10 +9,10 @@ from flask_api import FlaskAPI
 # Note here we try to keep a bijective ORM - Schema - REST resource relationship, to keep app structure simple
 
 from .addons import db, ma
-from .users import users, user_read, user_edit, user_add, user_delete
-from .owners import owners, owner_detail
-from .species import species, species_detail
 from .animals import animals, animals_detail
+from .species import species, species_read, species_edit, species_add, species_delete
+from .owners import owners, owner_read, owner_edit, owner_add, owner_delete
+from .users import users, user_read, user_edit, user_add, user_delete
 
 # local import
 from instance.config import app_config
@@ -41,10 +41,16 @@ def create_app(config_name):
     app.add_url_rule('/api/users/<id>', view_func=user_delete, methods=["DELETE"])
 
     app.add_url_rule('/api/owners/', view_func=owners)
-    app.add_url_rule('/api/owners/<id>', view_func=owner_detail)
+    app.add_url_rule('/api/owners/<id>', view_func=owner_read, methods=["GET"])
+    app.add_url_rule('/api/owners/<id>', view_func=owner_edit, methods=["PUT"])
+    app.add_url_rule('/api/owners/', view_func=owner_add, methods=["POST"])
+    app.add_url_rule('/api/owners/<id>', view_func=owner_delete, methods=["DELETE"])
 
     app.add_url_rule('/api/species/', view_func=species)
-    app.add_url_rule('/api/species/<id>', view_func=species_detail)
+    app.add_url_rule('/api/species/<id>', view_func=species_read, methods=["GET"])
+    app.add_url_rule('/api/species/<id>', view_func=species_edit, methods=["PUT"])
+    app.add_url_rule('/api/species/', view_func=species_add, methods=["POST"])
+    app.add_url_rule('/api/species/<id>', view_func=species_delete, methods=["DELETE"])
 
     app.add_url_rule('/api/animals/', view_func=animals)
     app.add_url_rule('/api/animals/<id>', view_func=animals_detail)

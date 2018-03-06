@@ -21,6 +21,9 @@ class UserTestCase(unittest.TestCase):
 
         # binds the app to the current context
         with self.app.app_context():
+            # drop all tables just in case
+            db.session.remove()
+            db.drop_all()
             # create all tables
             db.create_all()
 
@@ -32,26 +35,35 @@ class UserTestCase(unittest.TestCase):
             db.drop_all()
 
     # BROWSE
-    @given(nick=st.text(), email=st.text())
-    def test_api_can_get_users(self, nick, email):
+    # See : https://github.com/pytest-dev/pytest/issues/916
+    @given(st.lists(elements=st.fixed_dictionaries({'nick': st.text(), 'email': st.text()})))
+    def test_api_can_get_users(self, dict_list):
         """Test API can get a user (GET request)."""
 
         # binds the app to the current context
         with self.app.app_context():
-            # Generate 10 random user test model in DB
-            # test_models = mixer.cycle(10).blend(User, nick=mixer.RANDOM, email=mixer.RANDOM)
 
-            # generating a user from hypothesis data via marshmallow
-            user_loaded = user_schema.load({'nick': nick, 'email': email})
-            user = user_loaded.data
-            #print(user)
+            for d in dict_list:
 
-            # writing to DB
-            user.save()
+                # generating a user from hypothesis data via marshmallow
+                user_loaded = user_schema.load({'nick': d.get('nick'), 'email': d.get('email')})
+                user = user_loaded.data
+                #print(user)
+
+                # writing to DB
+                user.save()
 
             result = self.client().get('/api/users/')
             self.assertEqual(result.status_code, 200)
             test_data = json.loads(result.data.decode('utf-8'))
+
+            self.assertEqual(len(test_data), len(dict_list))
+            for u in test_data:
+                self.assertIn(u, dict_list)
+
+            for d in dict_list:
+                self.assertIn(d, test_data)
+
             #print(test_data)
 
             # TODO assert
@@ -143,8 +155,8 @@ class UserTestCase(unittest.TestCase):
         result = self.client().get('/api/users/{}'.format(new_user.get('id')))
         self.assertEqual(result.status_code, 200)
         test_data = json.loads(result.data.decode('utf-8'))
-        self.assertEqual(test_data.get('nick'), nick)
-        self.assertEqual(test_data.get('email'), email)
+        self.assertEqual(test_data.get('nick'), new_user.get('nick'))
+        self.assertEqual(test_data.get('email'), new_user.get('email'))
 
     # DELETE
     @given(nick=st.text(), email=st.text())
