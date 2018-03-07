@@ -56,17 +56,26 @@ class User(db.Model):
     #     self.nick = nick
     #     self.email = email
 
-    def save(self):
-        db.session.add(self)
-        db.session.commit()
+    def save(self, session=None):
+        """
+        save the data
+        :param session: optional in case flask has not been initialized
+        :return:
+        """
+        if session is None:
+            session = db.session
+        session.add(self)
+        session.commit()
 
     @staticmethod
     def all():
         return User.query.all()
 
-    def delete(self):
-        db.session.delete(self)
-        db.session.commit()
+    def delete(self, session=None):
+        if session is None:
+            session = db.session
+        session.delete(self)
+        session.commit()
 
     def __repr__(self):
         return "<User: {}>".format(self.nick)

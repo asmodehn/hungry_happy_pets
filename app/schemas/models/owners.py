@@ -24,15 +24,19 @@ class Owner(db.Model):
     >>> import users, species  #import other modules to resolve relationships
     >>> Owner.metadata.create_all(engine)
 
+    >>> user_data = users.User(nick='testuser', email='tester@comp.any')  # first we need a preexisting user
+    >>> session.add(user_data)  # and we need it to set the id
+    >>> session.commit()
+    >>> session.query(users.User).all()
+    [<User: testuser>]
+
     >>> owner_data = Owner()
-    >>> owner_data.user = users.User(nick='testuser', email='tester@comp.any')
+    >>> owner_data.user_id = user_data.id
 
     >>> session.add(owner_data)
     >>> session.commit()
     >>> session.query(Owner).all()
     [<Owner: <User: testuser> []>]
-
-    # TODO get rid of mixer, makes things less obvious => pure sqlalchemy
 
     """
 
@@ -57,17 +61,21 @@ class Owner(db.Model):
     #     self.nick = nick
     #     self.email = email
 
-    def save(self):
-        db.session.add(self)
-        db.session.commit()
+    def save(self, session=None):
+        if session is None:
+            session = db.session
+        session.add(self)
+        session.commit()
 
     @staticmethod
     def get_all():
         return Owner.query.all()
 
-    def delete(self):
-        db.session.delete(self)
-        db.session.commit()
+    def delete(self, session=None):
+        if session is None:
+            session = db.session
+        session.delete(self)
+        session.commit()
 
     def __repr__(self):
         return "<Owner: {} {}>".format(self.user, self.pets)

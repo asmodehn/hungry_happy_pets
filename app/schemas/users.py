@@ -26,9 +26,12 @@ class UserSchema(ma.ModelSchema):
 
     >>> import species  #import other modules to resolve relationships
     >>> User.metadata.create_all(engine)
-    >>> user_data = User(nick='testuser', email='tester@comp.any')
-    >>> session.add(user_data)
-    >>> session.commit()
+
+    >>> user_data, user_errors = user_schema.load({'nick': 'testuser', 'email': 'tester@comp.any'}, session=session)
+    >>> user_data
+    <User: testuser>
+
+    >>> user_data.save(session=session)
     >>> session.query(User).all()
     [<User: testuser>]
 
@@ -37,9 +40,9 @@ class UserSchema(ma.ModelSchema):
     >>> pprint.pprint(dump_data)  # doctest: +ELLIPSIS
     {'email': 'tester@comp.any', 'id': 1, 'nick': 'testuser'}
 
-    >>> user_schema.load(dump_data, session=session).data
-    <User: testuser>
 
+    >>> user_schema.load(dump_data, session=session).data  # check invertibility
+    <User: testuser>
     """
 
     class Meta:

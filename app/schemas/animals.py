@@ -1,14 +1,14 @@
 try:
     from ._bootstrap import ma
-    from .models import Animal
+    from .models import Animal, Species
     from .species import SpeciesSchema
 except SystemError:  # in case we call this module directly (doctest)
     from _bootstrap import ma
-    from models import Animal
+    from models import Animal, Species
     from species import SpeciesSchema
 
 
-from marshmallow import fields
+from marshmallow import fields, pre_load
 
 
 
@@ -25,18 +25,40 @@ class AnimalSchema(ma.ModelSchema):
     >>> import species, users, owners  #import other modules to resolve relationships
     >>> Animal.metadata.create_all(engine)
 
-    >>> animal_data = Animal(name='testanimal', happy=4, hungry=42)
-    >>> animal_data.species = species.Species(name='testspecies', happy_rate=0.5, hunger_rate=2.3)  # testing backref
-    >>> test_owner = owners.Owner()
-    >>> test_owner.user = users.User(nick='testuser', email='tester@comp.any')
-    >>> animal_data.owner = test_owner
+    >>> species_data, species_errors = species.species_schema.load({'name':'testspecies', 'happy_rate': 0.5, 'hunger_rate': 2.3}, session=session)
+    >>> species_data
+    <Species: testspecies>
 
-    >>> session.add(animal_data)
-    >>> session.commit()
+    >>> species_data.save(session=session)
+    >>> session.query(species.Species).all()
+    [<Species: testspecies>]
+
+    >>> animal_data = Animal(name='testanimal', happy=4, hungry=42)
+    >>> animal_data.species_id = species_data.id
+
+    >>> user_data, user_errors = users.user_schema.load({'nick': 'testuser', 'email': 'tester@comp.any'}, session=session)
+    >>> user_data
+    <User: testuser>
+
+    >>> user_data.save(session=session)
+    >>> session.query(users.User).all()
+    [<User: testuser>]
+
+    >>> owner_data, owner_errors = owners.owner_schema.load({}, session=session)
+    >>> owner_data
+    <Owner: None []>
+
+    >>> owner_data.user_id = user_data.id  # linking already existing user with its id
+    >>> owner_data.save(session=session) # validating relationship
+    >>> owner_data
+    <Owner: <User: testuser> []>
+
+    >>> animal_data.owner_id = owner_data.id
+    >>> animal_data.save(session=session)
     >>> session.query(Animal).all()
-    [<Animal: testanimal>]
+    [<Animal: testanimal <Species: testspecies>>]
     >>> session.query(owners.Owner).all()
-    [<Owner: <User: testuser> [<Animal: testanimal>]>]
+    [<Owner: <User: testuser> [<Animal: testanimal <Species: testspecies>>]>]
 
     >>> dump_data = animal_schema.dump(animal_data).data
     >>> import pprint  #ordering dict output
@@ -48,16 +70,31 @@ class AnimalSchema(ma.ModelSchema):
      'species': {'name': 'testspecies'}}
 
     >>> animal_schema.load(dump_data, session=session).data
-    <Animal: testanimal>
+    <Animal: testanimal <Species: testspecies>>
     """
 
     class Meta:
         fields = ('id', 'name', 'happy', 'hungry', 'species')
-        dump_only = ('id',)
+        load_only = ('species_id')
+        dump_only = ('id', 'species')
         model = Animal
 
-    species = fields.Nested(SpeciesSchema, only=["name"])
+    species = fields.Nested(SpeciesSchema, only=["name", "species"])
     #author = ma.HyperlinkRelated('owner')
+
+    @pre_load
+    def match_species_by_unique_name(self, data):
+        if 'species' in data:
+            species = data.pop('species')
+            matched = self.model.session.query(Species).filter_by(name = species.get('name')).one()
+
+            if matched:
+                data.setdefault('species_id', matched.id)
+            else:
+                raise RuntimeError
+
+        return data
+
 
 
 animal_schema = AnimalSchema()

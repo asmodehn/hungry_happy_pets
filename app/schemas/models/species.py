@@ -36,7 +36,7 @@ class Species(db.Model):
     __tablename__ = 'species'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(255))
+    name = db.Column(db.String(255), unique=True)
     #TODO color = db.Column(ColorType)  # some visible attribute for user & designers
     #happy_range = db.Column(NumericRangeType)
     #happy_rate = db.Column(db.Numeric(precision=None, scale=None, decimal_return_scale=None, asdecimal=True))
@@ -58,17 +58,21 @@ class Species(db.Model):
     #     """initialize with name."""
     #     self.name = name
 
-    def save(self):
-        db.session.add(self)
-        db.session.commit()
+    def save(self, session=None):
+        if session is None:
+            session = db.session
+        session.add(self)
+        session.commit()
 
     @staticmethod
     def all():
         return Species.query.all()
 
-    def delete(self):
-        db.session.delete(self)
-        db.session.commit()
+    def delete(self, session=None):
+        if session is None:
+            session = db.session
+        session.delete(self)
+        session.commit()
 
     def __repr__(self):
         return "<Species: {}>".format(self.name)

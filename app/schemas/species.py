@@ -25,9 +25,11 @@ class SpeciesSchema(ma.ModelSchema):
     >>> import users, owners  #import other modules to resolve relationships
     >>> Species.metadata.create_all(engine)
 
-    >>> species_data = Species(name='testspecies', happy_rate=5, hunger_rate=23)
-    >>> session.add(species_data)
-    >>> session.commit()
+    >>> species_data, species_errors = species_schema.load({'name': 'testspecies', 'happy_rate': 5, 'hunger_rate': 23}, session=session)
+    >>> species_data
+    <Species: testspecies>
+
+    >>> species_data.save(session=session)
     >>> session.query(Species).all()
     [<Species: testspecies>]
 
@@ -36,7 +38,7 @@ class SpeciesSchema(ma.ModelSchema):
     >>> pprint.pprint(dump_data)  # doctest: +ELLIPSIS
     {'happy_rate': 5, 'hunger_rate': 23, 'id': 1, 'name': 'testspecies'}
 
-    >>> species_schema.load(dump_data, session=session).data
+    >>> species_schema.load(dump_data, session=session).data  # check invertibility
     <Species: testspecies>
     """
     class Meta:

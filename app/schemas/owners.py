@@ -27,15 +27,33 @@ class OwnerSchema(ma.ModelSchema):
     >>> import models, users, species, animals  #import other modules to resolve relationships
     >>> Owner.metadata.create_all(engine)
 
-    >>> owner_data = Owner()
-    >>> owner_data.user = users.User(nick='testuser', email='tester@comp.any')
+    >>> user_data, user_errors = users.user_schema.load({'nick': 'testuser', 'email': 'tester@comp.any'}, session=session)
+    >>> user_data
+    <User: testuser>
 
-    >>> animal_data = models.Animal(name='testanimal', happy=4, hungry=42)
-    >>> animal_data.species = models.Species(name='testspecies', happy_rate=0.5, hunger_rate=2.3)
-    >>> owner_data.pets = [animal_data]
+    >>> user_data.save(session=session)
+    >>> session.query(users.User).all()
+    [<User: testuser>]
 
-    >>> session.add(owner_data)
-    >>> session.commit()
+    >>> species_data, species_errors = species.species_schema.load({'name': 'testspecies', 'happy_rate': 5, 'hunger_rate': 23}, session=session)
+    >>> species_data
+    <Species: testspecies>
+
+    >>> species_data.save(session=session)
+    >>> session.query(species.Species).all()
+    [<Species: testspecies>]
+
+    >>> owner_data, owner_errors = owner_schema.load({}, session=session)
+    >>> owner_data
+    <Owner: None []>
+
+    >>> owner_data.user_id = user_data.id  # linking already existing user with its id
+    >>> owner_data.save(session=session) # validating relationship
+    >>> owner_data
+    <Owner: <User: testuser> []>
+
+    >>> owner_data, owner_errors2 = owner_schema.load({'pets': [{'name': 'testanimal', 'species_id': species_data.id}]}, instance=owner_data)
+    >>> owner_data.save(session=session)
     >>> session.query(Owner).all()
     [<Owner: <User: testuser> [<Animal: testanimal>]>]
 
@@ -46,20 +64,21 @@ class OwnerSchema(ma.ModelSchema):
      'pets': [{'name': 'testanimal', 'species': {'name': 'testspecies'}}],
      'user': {'email': 'tester@comp.any', 'id': 1, 'nick': 'testuser'}}
 
-    >>> owner_schema.load(dump_data, session=session).data
+    >>> owner_schema.load(dump_data, session=session).data  # check invertibility
     <Owner: <User: testuser> [<Animal: testanimal>]>
     """
 
 
     class Meta:
         fields = ('id', 'user', 'pets')
-        # dump_only = ('id',)
+        load_only = ('user_id',)
+        dump_only = ('id', 'user')
         model = Owner
 
     #fields.Nested(UserSchema, only=["nick", "email"])
-    pets = fields.Nested(AnimalSchema, many=True, only=["name", "species"])
+    pets = fields.Nested(AnimalSchema, many=True, load_only=["species_id"], dump_only=["species"])
 
-    user = fields.Nested(UserSchema, exclude=('author',))
+    user = fields.Nested(UserSchema, dump_only=True)
 
     #pets = ma.HyperlinkRelated('animals')
 

@@ -20,16 +20,25 @@ class Animal(db.Model):
     >>> import species, users, owners  #import other modules to resolve relationships
     >>> Animal.metadata.create_all(engine)
 
-    >>> animal_data = Animal(name='testanimal', happy=4, hungry=42)
-    >>> animal_data.species = species.Species(name='testspecies', happy_rate=0.5, hunger_rate=2.3)
+    >>> spec = species.Species(name='testspecies', happy_rate=0.5, hunger_rate=2.3)
+    >>> spec.save(session=session)
+    >>> session.query(species.Species).all()
+    [<Species: testspecies>]
+
+    >>> animal_data = Animal(name='testanimal', happy=4, hungry=42, species_id=spec.id)
+    >>> animal_data
+    <Animal: testanimal>
+
     >>> test_owner = owners.Owner()
     >>> test_owner.user = users.User(nick='testuser', email='tester@comp.any')
-    >>> animal_data.owner = test_owner
+    >>> test_owner.save(session=session)  # need to commit to get id assigned
 
-    >>> session.add(animal_data)
-    >>> session.commit()
+    >>> animal_data.owner_id = test_owner.id
+    >>> animal_data.save(session=session)
+
     >>> session.query(Animal).all()
     [<Animal: testanimal>]
+
     >>> session.query(owners.Owner).all()
     [<Owner: <User: testuser> [<Animal: testanimal>]>]
     """
@@ -54,21 +63,31 @@ class Animal(db.Model):
     #     """initialize with name."""
     #     self.name = name
 
-    def save(self):
-        db.session.add(self)
-        db.session.commit()
+    def save(self, session=None, commit=True):
+        if session is None:
+            session = db.session
+        session.add(self)
+        if commit:
+            session.commit()
 
     @staticmethod
     def get_all():
         return Animal.query.all()
 
-    def delete(self):
-        db.session.delete(self)
-        db.session.commit()
+    def delete(self, session=None, commit=True):
+        if session is None:
+            session = db.session
+        session.delete(self)
+        if commit:
+            session.commit()
+
+    def commit(self, session=None):
+        if session is None:
+            session = db.session
+        session.commit()
 
     def __repr__(self):
-        return "<Animal: {}>".format(self.name)
-
+        return "<Animal: {} {}>".format(self.name, self.species)
 
 
 if __name__ == "__main__":

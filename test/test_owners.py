@@ -11,7 +11,7 @@ try:
 except SystemError:
     from utils import clean_app_test_client
 
-from app.owners import owner_schema
+from app.owners import models, owner_schema
 
 
 
@@ -67,9 +67,12 @@ def test_api_can_get_owner_by_id(nick, email):
     with clean_app_test_client(config_name="testing") as client:
 
         # generating a user from hypothesis data via marshmallow
+        # since we want to prevent user creation from owner API
+        # keep resources tests independent
+        user = models.User(nick='testuser', email='tester@comp.any')
 
         # generating its owner
-        owner_loaded = owner_schema.load({'user': {'nick': nick, 'email': email}})
+        owner_loaded = owner_schema.load({'user_id': user.id})
         owner = owner_loaded.data
         #print(owner)
 

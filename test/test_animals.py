@@ -2,17 +2,11 @@ import unittest
 import os
 import json
 
-from mixer.backend.sqlalchemy import TypeMixer
-from mixer.backend.flask import mixer
-
 try:
     from .utils import clean_app_test_client
 except SystemError:
     from utils import clean_app_test_client
 
-
-from app.animals import Animal, animal_schema
-from app import create_app, db
 
 
 # BROWSE
