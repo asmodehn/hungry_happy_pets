@@ -1,128 +1,17 @@
 import http
 
 try:
-    from .addons import db, ma
-    from .owners import Owner
+    from .schemas import models, user_schema
 except SystemError:  # in case we call this module directly (doctest)
-    from addons import db, ma
-    from owners import Owner
+    from schemas import models, user_schema
 
 from sqlalchemy_utils import PasswordType, EmailType, UUIDType  #,NumericRangeType
 from flask import jsonify, request
 from marshmallow import post_load
 
 
-class User(db.Model):
-    """This class represents the users table.
-    User represent the generic concept of user of a service.
-
-    Usage through sqlalchemy :
-    >>> import sqlalchemy
-    >>> engine = sqlalchemy.create_engine('sqlite:///:memory:')
-    >>> Session = sqlalchemy.orm.sessionmaker(bind=engine)
-    >>> session = Session()
-
-    >>> import species  #import other modules to resolve relationships
-    >>> User.metadata.create_all(engine)
-    >>> user_data = User(nick='testuser', email='tester@comp.any')
-    >>> session.add(user_data)
-    >>> session.commit()
-    >>> session.query(User).all()
-    [<User: testuser>]
-    """
-
-    __tablename__ = 'users'
-
-    id = db.Column(db.Integer, primary_key=True)
-    #uuid = db.Column(UUIDType(binary=False))  # http://docs.sqlalchemy.org/en/rel_0_9/core/custom_types.html?highlight=guid#backend-agnostic-guid-type
-    nick = db.Column(db.String)
-    email = db.Column(EmailType())  # TODO : support multiple with primary contact point (github style)
-    password = db.Column(PasswordType(
-        schemes=[
-            'pbkdf2_sha512',
-        ],
-    ))
-    designer = db.Column(db.Boolean)  # whether this user is also a designer and can edit the races table
-    owners = db.relationship('Owner', backref='user', lazy=True)
-
-    # authoring
-    date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
-    date_modified = db.Column(
-        db.DateTime, default=db.func.current_timestamp(),
-        onupdate=db.func.current_timestamp())
-
-    # https://github.com/klen/mixer#support-for-flask-sqlalchemy-models-that-have-init-arguments
-    # def __init__(self, nick, email):
-    #     """initialize with name."""
-    #     self.nick = nick
-    #     self.email = email
-
-    def save(self):
-        db.session.add(self)
-        db.session.commit()
-
-    @staticmethod
-    def all():
-        return User.query.all()
-
-    def delete(self):
-        db.session.delete(self)
-        db.session.commit()
-
-    def __repr__(self):
-        return "<User: {}>".format(self.nick)
-
-
-class UserSchema(ma.ModelSchema):
-
-    """This class represents the users table.
-    User represent the generic concept of user of a service.
-
-    Usage through marshmallow-sqlalchemy:
-    >>> import sqlalchemy
-    >>> engine = sqlalchemy.create_engine('sqlite:///:memory:')
-    >>> Session = sqlalchemy.orm.sessionmaker(bind=engine)
-    >>> session = Session()
-
-    >>> import species  #import other modules to resolve relationships
-    >>> User.metadata.create_all(engine)
-    >>> user_data = User(nick='testuser', email='tester@comp.any')
-    >>> session.add(user_data)
-    >>> session.commit()
-    >>> session.query(User).all()
-    [<User: testuser>]
-
-    >>> dump_data = user_schema.dump(user_data).data
-    >>> import pprint  #ordering dict output
-    >>> pprint.pprint(dump_data)  # doctest: +ELLIPSIS
-    {'date_created': '...',
-     'email': 'tester@comp.any',
-     'id': 1,
-     'nick': 'testuser'}
-
-    >>> user_schema.load(dump_data, session=session).data
-    <User: testuser>
-
-    """
-
-    class Meta:
-        # Fields to expose
-        fields = ('id', 'nick', 'email', 'date_created')
-        exclude = ("password",)
-        dump_only = ('id', )
-        # Smart hyperlinking
-        # _links = ma.Hyperlinks({
-        #     'self': ma.URLFor('author_detail', id='<id>'),
-        #     'collection': ma.URLFor('authors')
-        # })
-        model = User
-
-
-user_schema = UserSchema()
-
-
 def users():
-    all_users = User.all()
+    all_users = models.User.all()
     user_dict, errors = user_schema.dump(all_users, many=True)
     if not errors:
         return user_dict
@@ -131,7 +20,7 @@ def users():
 
 
 def user_read(id):
-    user = User.query.get(id)
+    user = models.User.query.get(id)
     if not user:
         return '', http.HTTPStatus.NOT_FOUND
     user_dict, errors = user_schema.dump(user)
@@ -153,7 +42,7 @@ def user_read(id):
 
 def user_edit(id):
     data = request.get_json()
-    user = User.query.get(id)
+    user = models.User.query.get(id)
 
     if not user:
         return '', http.HTTPStatus.NOT_FOUND
@@ -182,7 +71,7 @@ def user_add():
 
 
 def user_delete(id):
-    user = User.query.get(id)
+    user = models.User.query.get(id)
     if user:
         user.delete()
         return '', http.HTTPStatus.NO_CONTENT

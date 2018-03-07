@@ -5,119 +5,168 @@ import json
 from mixer.backend.sqlalchemy import TypeMixer
 from mixer.backend.flask import mixer
 
+try:
+    from .utils import clean_app_test_client
+except SystemError:
+    from utils import clean_app_test_client
+
 
 from app.animals import Animal, animal_schema
 from app import create_app, db
 
 
-# class AnimalTypeMixer(TypeMixer):
-#
-#     def __init__(self, cls, **params):
-#         super(AnimalTypeMixer, self).__init__(cls, **params)
-#
-#     def populate_target(self, values):
-#         target = self.__scheme(**values)
-#         return target
-#
-# mixer.type_mixer_cls = AnimalTypeMixer
+# BROWSE
+@given(st.lists(elements=st.fixed_dictionaries({'nick': st.text(), 'email': st.text()})))
+def test_api_can_get_owners(dict_list):
+    """Test API can get a user (GET request)."""
+
+    # binds the app to the current context
+    with clean_app_test_client(config_name="testing") as client:
+
+        for d in dict_list:
+
+            # generating a user from hypothesis data via marshmallow
+            user_loaded = owner_schema.load({'nick': d.get('nick'), 'email': d.get('email')})
+            user = user_loaded.data
+            #print(user)
+
+            # writing to DB
+            user.save()
+
+        result = client.get('/api/owners/')
+        assert result.status_code == 200
+        test_data = json.loads(result.data.decode('utf-8'))
+
+        assert len(test_data) == len(dict_list)
+        for u in test_data:
+            self.assertIn(u, dict_list)
+
+        for d in dict_list:
+            self.assertIn(d, test_data)
+
+        #print(test_data)
+
+        # TODO assert
+        # for m in test_models:
+        #     for d in test_data:
+        #         for k,v  in d.items():
+        #             self.assertEqual(getattr(m, k), v)
+        #             d = user_schema.jsonify(m)
+        #     self.assertIn(d, test_data)
+        #
+        # # to make sure we didnt create any extra data
+        # for d in test_data:
+        #     m = user_schema.load(d)
+        #     self.assertIn(m, test_models)
+
+# READ
+@given(nick=st.text(), email=st.text())
+def test_api_can_get_owner_by_id(nick, email):
+    """Test API can get a single owner by using it's id."""
+    # binds the app to the current context
+    with clean_app_test_client(config_name="testing") as client:
+
+        # generating a user from hypothesis data via marshmallow
+
+        # generating its owner
+        owner_loaded = owner_schema.load(user={'nick': nick, 'email': email})
+        owner = owner_loaded.data
+        #print(owner)
+
+        # writing to DB
+        owner.save()
+
+        result = client.get('/api/owners/{}'.format(owner.id))
+        assert result.status_code == 200
+        test_data = json.loads(result.data.decode('utf-8'))
+        assert test_data.get('nick') == owner.nick
+        assert test_data.get('email') == owner.email
+        #print(test_data)
+
+# EDIT
+@given(nick=st.text(), email=st.text(), new_email=st.text())
+def test_owner_email_can_be_edited(nick, email, new_email):
+    """Test API can edit an existing owner. (PUT request)"""
+
+    # binds the app to the current context
+    with clean_app_test_client(config_name="testing") as client:
+
+        # generating a user from hypothesis data via marshmallow
+        user_loaded = owner_schema.load({'nick': nick, 'email': email})
+        user = user_loaded.data
+        # print(user)
+
+        # writing to DB
+        user.save()
+
+        result = client.put(
+            '/api/owners/{}'.format(user.id),
+            headers={'Content-Type': 'application/json'},
+            data=json.dumps({"email": new_email})
+        )
+        assert result.status_code == 200
+        test_data = json.loads(result.data.decode('utf-8'))
+        assert test_data.get('nick') == user.nick
+        assert test_data.get('email') == new_email
+        # print(test_data)
+
+        # another request to insure persistence
+        result = client.get('/api/owners/{}'.format(user.id))
+        assert result.status_code == 200
+        test_data = json.loads(result.data.decode('utf-8'))
+        assert test_data.get('nick') == user.nick
+        assert test_data.get('email') == new_email
+
+# TODO : More edits (check if allowed or not)
 
 
-class UserTestCase(unittest.TestCase):
-    """This class represents the user test case"""
+# ADD
+@given(nick=st.text(), email=st.text())
+def test_owner_creation(nick, email):
+    """Test API can create a user (POST request)"""
+    # binds the app to the current context
+    with clean_app_test_client(config_name="testing") as client:
 
-    def setUp(self):
-        """Define test variables and initialize app."""
-        self.app = create_app(config_name="testing")
-        self.client = self.app.test_client
+        res = client.post(
+            '/api/users/',
+            headers={'Content-Type': 'application/json'},
+            data=json.dumps({'nick': nick, 'email': email}))
+        assert res.status_code == 201
+        new_user = json.loads(res.data.decode('utf-8'))
 
-        mixer.init_app(self.app)
+        # consecutive request with id
+        result = client.get('/api/owners/{}'.format(new_user.get('id')))
+        assert result.status_code == 200
+        test_data = json.loads(result.data.decode('utf-8'))
+        assert test_data.get('nick') == nick
+        assert test_data.get('email') == email
 
-        # binds the app to the current context
-        with self.app.app_context():
-            # create all tables
-            db.create_all()
 
+# DELETE
+@given(nick=st.text(), email=st.text())
+def test_user_deletion(nick, email):
+    """Test API can delete an existing user. (DELETE request)."""
 
-    # def test_bucketlist_creation(self):
-    #     """Test API can create a user (POST request)"""
-    #     res = self.client().post('/users/', data=self.user)
-    #     self.assertEqual(res.status_code, 201)
-    #     self.assertIn('Go to Borabora', str(res.data))
+    # binds the app to the current context
+    with clean_app_test_client(config_name="testing") as client:
 
-    def test_api_can_get_users(self):
-        """Test API can get a user (GET request)."""
+        # generating a user from hypothesis data via marshmallow
+        user_loaded = owner_schema.load({'nick': nick, 'email': email})
+        user = user_loaded.data
+        # print(user)
 
-        # binds the app to the current context
-        with self.app.app_context():
-            # Generate 10 random user test model in DB
-            test_models = mixer.cycle(10).blend(Animal, name=mixer.RANDOM)
+        # writing to DB
+        user.save()
 
-            result = self.client().get('/api/animals/')
-            self.assertEqual(result.status_code, 200)
-            test_data = json.loads(result.data.decode('utf-8'))
+        res = client.delete('/api/owners/{}'.format(user.id))
+        assert res.status_code == 204
 
-            # TODO assert
-            # for m in test_models:
-            #     for d in test_data:
-            #         for k,v  in d.items():
-            #             self.assertEqual(getattr(m, k), v)
-            #             d = user_schema.jsonify(m)
-            #     self.assertIn(d, test_data)
-            #
-            # # to make sure we didnt create any extra data
-            # for d in test_data:
-            #     m = user_schema.load(d)
-            #     self.assertIn(m, test_models)
-            pass
-
-    def test_api_can_get_user_by_id(self):
-        """Test API can get a single user by using it's id."""
-        # binds the app to the current context
-        with self.app.app_context():
-            # Generate a random user test model in DB
-            test_model = mixer.blend(User, nick='testuser', email='tester@comp.any')
-
-            result = self.client().get('/api/animals/{}'.format(test_model.id))
-            self.assertEqual(result.status_code, 200)
-            test_data = json.loads(result.data.decode('utf-8'))
-            self.assertEqual(test_data.get('nick'), test_model.nick)
-            self.assertEqual(test_data.get('email'), test_model.email)
-    #
-    # def test_bucketlist_can_be_edited(self):
-    #     """Test API can edit an existing bucketlist. (PUT request)"""
-    #     rv = self.client().post(
-    #         '/bucketlists/',
-    #         data={'name': 'Eat, pray and love'})
-    #     self.assertEqual(rv.status_code, 201)
-    #     rv = self.client().put(
-    #         '/bucketlists/1',
-    #         data={
-    #             "name": "Dont just eat, but also pray and love :-)"
-    #         })
-    #     self.assertEqual(rv.status_code, 200)
-    #     results = self.client().get('/bucketlists/1')
-    #     self.assertIn('Dont just eat', str(results.data))
-    #
-    # def test_bucketlist_deletion(self):
-    #     """Test API can delete an existing bucketlist. (DELETE request)."""
-    #     rv = self.client().post(
-    #         '/bucketlists/',
-    #         data={'name': 'Eat, pray and love'})
-    #     self.assertEqual(rv.status_code, 201)
-    #     res = self.client().delete('/bucketlists/1')
-    #     self.assertEqual(res.status_code, 200)
-    #     # Test to see if it exists, should return a 404
-    #     result = self.client().get('/bucketlists/1')
-    #     self.assertEqual(result.status_code, 404)
-
-    def tearDown(self):
-        """teardown all initialized variables."""
-        with self.app.app_context():
-            # drop all tables
-            db.session.remove()
-            db.drop_all()
+        # Test to see if it exists, should return a 404
+        result = client.get('/api/owners/{}'.format(user.id))
+        assert result.status_code == 404
 
 
 # Make the tests conveniently executable
 if __name__ == "__main__":
     unittest.main()
+

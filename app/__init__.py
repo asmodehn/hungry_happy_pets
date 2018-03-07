@@ -8,7 +8,7 @@ from flask_api import FlaskAPI
 
 # Note here we try to keep a bijective ORM - Schema - REST resource relationship, to keep app structure simple
 
-from .addons import db, ma
+from .schemas import models, ma
 from .animals import animals, animals_detail
 from .species import species, species_read, species_edit, species_add, species_delete
 from .owners import owners, owner_read, owner_edit, owner_add, owner_delete
@@ -28,7 +28,8 @@ def create_app(config_name):
     # https://stackoverflow.com/questions/33738467/how-do-i-know-if-i-can-disable-sqlalchemy-track-modifications
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-    addons.init(app)
+    models.db.init_app(app)
+    ma.init_app(app)
 
     # setup routing (has to be done dynamically, and not on import).
     # TODO : api in blue print... ( check with flask api )

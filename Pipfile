@@ -7,21 +7,22 @@ name = "pypi"
 
 [packages]
 
-Flask = "*"
-SQLAlchemy = "*"
+flask = "*"
+sqlalchemy = "*"
 marshmallow = "*"
 alembic = "*"
-Flask-SQLAlchemy = "*"
+flask-sqlalchemy = "*"
 flask-marshmallow = "*"
-Flask-API = "*"
-Flask-Migrate = "*"
-SQLAlchemy-Utils = "*"
+flask-api = "*"
+flask-migrate = "*"
+sqlalchemy-utils = "*"
 passlib = "*"
 colour = "*"
 intervals = "*"
 mixer = "*"
 "psycopg2" = "*"
 hypothesis = "*"
+marshmallow-sqlalchemy = "*"
 
 
 [dev-packages]
