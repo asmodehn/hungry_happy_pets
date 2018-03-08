@@ -61,21 +61,32 @@ class Owner(db.Model):
     #     self.nick = nick
     #     self.email = email
 
-    def save(self, session=None):
+    def save(self, session=None, commit=True):
         if session is None:
             session = db.session
         session.add(self)
-        session.commit()
+        if commit:
+            self.commit(session=session)
 
     @staticmethod
     def get_all():
         return Owner.query.all()
 
-    def delete(self, session=None):
+    def delete(self, session=None, commit=True):
         if session is None:
             session = db.session
         session.delete(self)
-        session.commit()
+        if commit:
+            self.commit(session=session)
+
+    def commit(self, session=None):
+        if session is None:
+            session = db.session
+        try:
+            session.commit()
+        except:
+            session.rollback()
+            raise
 
     def __repr__(self):
         return "<Owner: {} {}>".format(self.user, self.pets)

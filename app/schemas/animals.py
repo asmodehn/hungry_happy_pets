@@ -11,7 +11,6 @@ except SystemError:  # in case we call this module directly (doctest)
 from marshmallow import fields, pre_load
 
 
-
 class AnimalSchema(ma.ModelSchema):
     """This class represents the animals table.
         A Pet is part of a species and belongs to an owner
@@ -74,31 +73,32 @@ class AnimalSchema(ma.ModelSchema):
     """
 
     class Meta:
-        fields = ('id', 'name', 'happy', 'hungry', 'species')
-        load_only = ('species_id')
-        dump_only = ('id', 'species')
+        fields = ('id', 'name', 'happy', 'hungry', 'species', 'species_id', 'owner', 'owner_id')
+        load_only = ('species_id', 'owner_id')
+        dump_only = ('id', 'species', 'owner')
         model = Animal
 
-    species = fields.Nested(SpeciesSchema, only=["name", "species"])
+    species = fields.Nested(SpeciesSchema, dump_only=True)
+    # indirect nested relation to avoid cycle
+    owner = fields.Nested('OwnerSchema', dump_only=True, exclude=('pets', ))
     #author = ma.HyperlinkRelated('owner')
 
-    @pre_load
-    def match_species_by_unique_name(self, data):
-        if 'species' in data:
-            species = data.pop('species')
-            matched = self.model.session.query(Species).filter_by(name = species.get('name')).one()
-
-            if matched:
-                data.setdefault('species_id', matched.id)
-            else:
-                raise RuntimeError
-
-        return data
+    # @pre_load
+    # def match_species_by_unique_name(self, data):
+    #     if 'species' in data:
+    #         species = data.pop('species')
+    #         matched = self.model.session.query(Species).filter_by(name = species.get('name')).one()
+    #
+    #         if matched:
+    #             data.setdefault('species_id', matched.id)
+    #         else:
+    #             raise RuntimeError
+    #
+    #     return data
 
 
 
 animal_schema = AnimalSchema()
-#animals_schema = UserSchema(many=True)
 
 
 if __name__ == "__main__":

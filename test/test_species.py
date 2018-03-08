@@ -13,25 +13,27 @@ except SystemError:
 from app.species import species_schema
 
 
-
-
 # BROWSE
 # See : https://github.com/pytest-dev/pytest/issues/916
-@given(st.lists(elements=st.fixed_dictionaries({
-    'name': st.text(),
-    'happy_rate': st.integers(min_value=-2147483648, max_value=2147483647),  # SQL INTEGER range
-    'hunger_rate': st.integers(min_value=-2147483648, max_value=2147483647)  # SQL INTEGER range
-})))
-def test_api_can_get_species(dict_list):
+@given(names=st.lists(st.text(), unique=True), data=st.data())
+def test_api_can_get_species(names, data):
     """Test API can get a user (GET request)."""
 
     # binds the app to the current context
     with clean_app_test_client(config_name="testing") as client:
 
-        for d in dict_list:
+        dict_list = []
+
+        for name in names:
+            # SQL INTEGER range
+            happy_rate = data.draw(st.integers(min_value=-2147483648, max_value=2147483647), label='happy_rate')
+            hunger_rate = data.draw(st.integers(min_value=-2147483648, max_value=2147483647), label='hunger_rate')
+
+            # building local dict to compare later
+            dict_list.append({'name': name, 'happy_rate': happy_rate, 'hunger_rate': hunger_rate})
 
             # generating a species from hypothesis data via marshmallow
-            species_loaded = species_schema.load({'name': d.get('name'), 'happy_rate': d.get('happy_rate'), 'hunger_rate': d.get('hunger_rate')})
+            species_loaded = species_schema.load({'name': name, 'happy_rate': happy_rate, 'hunger_rate': hunger_rate})
             species = species_loaded.data
             #print(species)
 

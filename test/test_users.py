@@ -13,18 +13,31 @@ from app.users import user_schema
 
 
 # BROWSE
+@st.composite
+def tie_len_strat(draw, st1, st2):
+    # we need to draw separately (useful to guarantee some properties - like uniqueness)
+    list1 = draw(st1)
+    list2 = draw(st2)
+    # and zip it
+    return zip(list1, list2)
+
+
 # CAREFUL : See : https://github.com/pytest-dev/pytest/issues/916
-@given(st.lists(elements=st.fixed_dictionaries({'nick': st.text(), 'email': st.text()})))
-def test_api_can_get_users(dict_list):
+@given(nicks_emails=tie_len_strat(st.lists(st.text(), unique=True), st.lists(st.text(), unique=True) ))
+def test_api_can_get_users(nicks_emails):
     """Test API can get a user (GET request)."""
 
     # binds the app to the current context
     with clean_app_test_client(config_name="testing") as client:
 
-        for d in dict_list:
+        dict_list = []
+        for nick, email in nicks_emails:
+
+            # building local dict to compare later
+            dict_list.append({'nick': nick, 'email': email})
 
             # generating a user from hypothesis data via marshmallow
-            user_loaded = user_schema.load({'nick': d.get('nick'), 'email': d.get('email')})
+            user_loaded = user_schema.load({'nick': nick, 'email': email})
             user = user_loaded.data
             #print(user)
 

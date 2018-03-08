@@ -21,6 +21,7 @@ def clean_memorydb_session_from_schema(schema):
 
 # Dummy table rows, rely ony on the core model DB (which should already work)
 # so we dont test anything here
+@contextlib.contextmanager
 def dummy_user(session):
 
     user_data = models.User(nick='testuser', email='tester@comp.any')
@@ -31,17 +32,21 @@ def dummy_user(session):
     user_data.delete(session=session)
 
 
+@contextlib.contextmanager
 def dummy_owner(session):
 
     with dummy_user(session) as user_data:
+
         owner_data = models.Owner()
         owner_data.user_id = user_data.id
+        owner_data.save(session=session)
 
-        yield owner_data, user_data
+        yield owner_data
 
         owner_data.delete(session=session)
 
 
+@contextlib.contextmanager
 def dummy_species(session):
     species_data = models.Species(name='testspecies', happy_rate=5, hunger_rate=23)
     species_data.save(session=session)
@@ -51,12 +56,14 @@ def dummy_species(session):
     species_data.delete(session=session)
 
 
+@contextlib.contextmanager
 def dummy_animal(session):
     with dummy_species(session) as species_data:
         animal_data = models.Animal(name='testanimal', happy=4, hungry=42)
-        animal_data.species_id = animal_data.id
+        animal_data.species_id = species_data.id
+        animal_data.save(session=session)
 
-        yield animal_data, species_data
+        yield animal_data
 
         animal_data.delete(session=session)
 

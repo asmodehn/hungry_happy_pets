@@ -49,7 +49,7 @@ class Animal(db.Model):
     name = db.Column(db.String(255))
     happy = db.Column(db.Integer())
     hungry = db.Column(db.Integer())
-    owner_id = db.Column(db.Integer, db.ForeignKey('owners.id'), nullable=False)
+    owner_id = db.Column(db.Integer, db.ForeignKey('owners.id'), nullable=True)  # allow orphan pets
     species_id = db.Column(db.Integer, db.ForeignKey('species.id'), nullable=False)
 
     # authoring
@@ -68,7 +68,7 @@ class Animal(db.Model):
             session = db.session
         session.add(self)
         if commit:
-            session.commit()
+            self.commit(session=session)
 
     @staticmethod
     def get_all():
@@ -79,15 +79,19 @@ class Animal(db.Model):
             session = db.session
         session.delete(self)
         if commit:
-            session.commit()
+            self.commit(session=session)
 
     def commit(self, session=None):
         if session is None:
             session = db.session
-        session.commit()
+        try:
+            session.commit()
+        except:
+            session.rollback()
+            raise
 
     def __repr__(self):
-        return "<Animal: {} {}>".format(self.name, self.species)
+        return "<Animal: {} {} {}>".format(self.name, self.species, self.owner)
 
 
 if __name__ == "__main__":

@@ -15,7 +15,6 @@ from flask import jsonify, request
 from marshmallow import fields, post_load
 
 
-
 class OwnerSchema(ma.ModelSchema):
     """
     Usage through marshmallow-sqlalchemy :
@@ -70,7 +69,7 @@ class OwnerSchema(ma.ModelSchema):
 
 
     class Meta:
-        fields = ('id', 'user', 'pets')
+        fields = ('id', 'user', 'pets', 'user_id')
         load_only = ('user_id',)
         dump_only = ('id', 'user')
         model = Owner

@@ -34,8 +34,8 @@ class User(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     #uuid = db.Column(UUIDType(binary=False))  # http://docs.sqlalchemy.org/en/rel_0_9/core/custom_types.html?highlight=guid#backend-agnostic-guid-type
-    nick = db.Column(db.String)
-    email = db.Column(EmailType())  # TODO : support multiple with primary contact point (github style)
+    nick = db.Column(db.String, unique=True)
+    email = db.Column(EmailType(), unique=True)  # TODO : support multiple with primary contact point (github style)
     password = db.Column(PasswordType(
         schemes=[
             'pbkdf2_sha512',
@@ -56,7 +56,7 @@ class User(db.Model):
     #     self.nick = nick
     #     self.email = email
 
-    def save(self, session=None):
+    def save(self, session=None, commit=True):
         """
         save the data
         :param session: optional in case flask has not been initialized
@@ -65,17 +65,28 @@ class User(db.Model):
         if session is None:
             session = db.session
         session.add(self)
-        session.commit()
+        if commit:
+            self.commit(session=session)
 
     @staticmethod
     def all():
         return User.query.all()
 
-    def delete(self, session=None):
+    def delete(self, session=None, commit=True):
         if session is None:
             session = db.session
         session.delete(self)
-        session.commit()
+        if commit:
+            self.commit(session=session)
+
+    def commit(self, session=None):
+        if session is None:
+            session = db.session
+        try:
+            session.commit()
+        except:
+            session.rollback()
+            raise
 
     def __repr__(self):
         return "<User: {}>".format(self.nick)

@@ -1,25 +1,171 @@
 import unittest
 import json
 
+import pytest
 from hypothesis import given
 import hypothesis.strategies as st
 
 try:
-    from .utils import clean_memorydb_session_from_schema
+    from .utils import clean_memorydb_session_from_schema, dummy_species, dummy_owner
 except SystemError:
-    from utils import clean_memorydb_session_from_schema
+    from utils import clean_memorydb_session_from_schema, dummy_species, dummy_owner
 
-from app.schemas import animal_schema, species_schema
+# import app.schemas import OwnerSchema  # used by animal indirect nested relation
+from app.schemas import models, animal_schema, species_schema, owner_schema
 
-def test_load_animals_species_id():
+
+@given(name=st.text(),
+    happy=st.integers(min_value=-2147483648, max_value=2147483647),
+    hungry=st.integers(min_value=-2147483648, max_value=2147483647)
+)
+def test_load_dump_animals_species_id_NO_owner_id_OK(name, happy, hungry):
 
     with clean_memorydb_session_from_schema(animal_schema) as s:
 
-        # load our dict
-        animal_data, animal_errors = animal_schema.load({'name': 'testanimal', 'happy': 4, 'hungry': 42}, session=s)
+        with dummy_species(s) as species:
 
-        # check we canNOT save it
-        animal_data.save(session=s)
+            ori = {'name': name, 'happy': happy, 'hungry': hungry, 'species_id': species.id}
+
+            # load our dict
+            animal_data, animal_errors = animal_schema.load(ori, session=s)
+
+            # check we can save it
+            animal_data.save(session=s)
+
+            # retrieve it again
+            animal_stored = s.query(models.Animal).get(animal_data.id)
+
+            # compare models
+            assert animal_stored == animal_data
+
+            # serialize
+            fin, err = animal_schema.dump(animal_stored)
+
+            # pop the added id
+            assert 'id' in fin
+            fin.pop('id')
+
+            # compare dicts
+            # species_id should have been expanded to the dummy species
+            # owner should be None
+            assert fin.get('species') == species_schema.dump(species).data
+            fin.pop('species')
+            fin.pop('owner')
+            # the rest should be identical
+            ori.pop('species_id')
+            assert fin == ori
+
+            # deleting table before removing dummy species
+            animal_stored.delete(session=s)
+
+
+@given(name = st.text(),
+    happy = st.integers(min_value=-2147483648, max_value=2147483647),
+    hungry = st.integers(min_value=-2147483648, max_value=2147483647)
+)
+def test_load_dump_animals_species_id_owner_id_OK(name, happy, hungry):
+
+    with clean_memorydb_session_from_schema(animal_schema) as s:
+
+        with dummy_species(s) as species:
+
+            with dummy_owner(s) as owner:
+
+                ori = {'name': name, 'happy': happy, 'hungry': hungry, 'species_id': species.id, 'owner_id': owner.id}
+
+                # load our dict
+                animal_data, animal_errors = animal_schema.load(ori, session=s)
+
+                # check we can save it
+                animal_data.save(session=s)
+
+                # retrieve it again
+                animal_stored = s.query(models.Animal).get(animal_data.id)
+
+                # compare models
+                assert animal_stored == animal_data
+
+                # serialize
+                fin, err = animal_schema.dump(animal_stored)
+
+                # pop the added id
+                assert 'id' in fin
+                fin.pop('id')
+
+                # compare dicts
+                # owner_id should have been expanded to the dummy owner
+                assert fin.get('owner') == owner_schema.dump(owner).data
+
+                # spcies_id should have been expanded to the dummy species
+                assert fin.get('species') == species_schema.dump(species).data
+
+                fin.pop('owner')
+                fin.pop('species')
+                # the rest should be identical
+                ori.pop('owner_id')
+                ori.pop('species_id')
+                assert fin == ori
+
+                # we should be able to delete the dummy owner but keep the orphan pet
+
+            # retrieve it again
+            animal_stored = s.query(models.Animal).get(animal_data.id)
+
+            # serialize
+            fin, err = animal_schema.dump(animal_stored)
+
+            # pop the added id
+            assert 'id' in fin
+            fin.pop('id')
+
+            assert fin.get('owner') is None
+
+            # spcies_id should have been expanded to the dummy species
+            assert fin.get('species') == species_schema.dump(species).data
+
+            fin.pop('species')
+            fin.pop('owner')
+            assert fin == ori
+
+            # deleting table before removing dummy species
+            animal_stored.delete(session=s)
+
+
+@given(name = st.text(),
+    happy = st.integers(min_value=-2147483648, max_value=2147483647),
+    hungry = st.integers(min_value=-2147483648, max_value=2147483647)
+)
+def test_load_animals_NO_species_id_FAIL(name, happy, hungry):
+
+    with clean_memorydb_session_from_schema(animal_schema) as s:
+        ori = {'name': name, 'happy': happy, 'hungry': hungry}
+
+        # load our dict
+        animal_data, animal_errors = animal_schema.load(ori, session=s)
+
+        # assert we can NOT save it
+        with pytest.raises(Exception):
+            animal_data.save(session=s)
+
+
+@given(name = st.text(),
+    happy = st.integers(min_value=-2147483648, max_value=2147483647),
+    hungry = st.integers(min_value=-2147483648, max_value=2147483647)
+)
+def test_load_animals_species_FAIL(name, happy, hungry):
+
+    with clean_memorydb_session_from_schema(animal_schema) as s:
+
+        with dummy_species(s) as species:
+
+            ori = {'name': name, 'happy': happy, 'hungry': hungry, 'species': species}
+
+            # load our dict
+            animal_data, animal_errors = animal_schema.load(ori, session=s)
+
+            # assert we can NOT save it
+            with pytest.raises(Exception):
+                animal_data.save(session=s)
 
 
 
