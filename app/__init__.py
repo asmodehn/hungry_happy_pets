@@ -22,11 +22,14 @@ from instance.config import app_config
 
 
 def api_details():
-    """Print available functions."""
+    """returns available rules and documentation."""
     func_list = {}
     for rule in current_app.url_map.iter_rules():
-        if rule.endpoint != 'static':
-            func_list[rule.rule] = current_app.view_functions[rule.endpoint].__doc__
+        if not rule.rule.startswith('/admin'):  # put aside the admin rules
+            if rule.endpoint != 'static':
+                func_list.setdefault(rule.rule, {})
+                for m in rule.methods:
+                    func_list[rule.rule][m] = current_app.view_functions[rule.endpoint].__doc__
     return jsonify(func_list)
 
 
@@ -41,6 +44,7 @@ def create_app(config_name):
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     models.db.init_app(app)
+    models.admin.init_app(app)
     ma.init_app(app)
 
     # setup routing (has to be done dynamically, and not on import).
