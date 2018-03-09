@@ -19,19 +19,17 @@ class TestingConfig(Config):
     DEBUG = True
 
 class StagingConfig(Config):
-    """Configurations for Staging."""
-    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL') or 'postgresql://localhost/test_db'  # same as prod
+    """Configurations for Heroku deployed app."""
     DEBUG = True
+    TESTING = False
 
-class ProductionConfig(StagingConfig):
-    """Configurations for Production as close as possible from staging."""
-    DEBUG = False
+class HerokuConfig(Config):
+    """Configurations for Heroku deployed app."""
+    DEBUG = True
     TESTING = False
 
 app_config = {
     'development': DevelopmentConfig,
     'testing': TestingConfig,
-    # preventing accidents ith untested configs.
-    # 'staging': StagingConfig,
-    # 'production': ProductionConfig,
+    'heroku': HerokuConfig,
 }
