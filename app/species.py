@@ -14,6 +14,10 @@ from flask import jsonify, request
 
 
 def species():
+    """
+    Retrieves all species
+    :return:
+    """
     all_species = models.Species.all()
     user_dict, errors = species_schema.dump(all_species, many=True)
     if not errors:
@@ -23,6 +27,11 @@ def species():
 
 
 def species_read(id):
+    """
+    Retrieve a species
+    :param id: the species id
+    :return:
+    """
     species = models.Species.query.get(id)
     if not species:
         return '', http.HTTPStatus.NOT_FOUND
@@ -44,6 +53,11 @@ def species_read(id):
 
 
 def species_edit(id):
+    """
+    Edit a species data
+    :param id:
+    :return:
+    """
     data = request.get_json()
     user = models.Species.query.get(id)
 
@@ -61,6 +75,10 @@ def species_edit(id):
 
 
 def species_add():
+    """
+    Adds a species
+    :return:
+    """
     data = request.get_json()
     user, errors = species_schema.load(data, )
     if not errors:
@@ -74,6 +92,11 @@ def species_add():
 
 
 def species_delete(id):
+    """
+    Deletes a species
+    :param id:
+    :return:
+    """
     species = models.Species.query.get(id)
     if species:
         species.delete()

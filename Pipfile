@@ -24,6 +24,7 @@ mixer = "*"
 hypothesis = "*"
 marshmallow-sqlalchemy = "*"
 gunicorn = "*"
+flask-admin = "*"
 
 
 [dev-packages]

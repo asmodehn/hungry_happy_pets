@@ -11,6 +11,10 @@ from marshmallow import fields, post_load
 
 
 def owners():
+    """
+    Retrieves all owners
+    :return:
+    """
     all_users = models.Owner.get_all()
     user_dict, errors = owner_schema.dump(all_users, many=True)
     if not errors:
@@ -20,6 +24,11 @@ def owners():
 
 
 def owner_read(id):
+    """
+    Retrieve an owner
+    :param id:
+    :return:
+    """
     user = models.Owner.query.get(id)
     if not user:
         return '', http.HTTPStatus.NOT_FOUND
@@ -41,6 +50,11 @@ def owner_read(id):
 
 
 def owner_edit(id):
+    """
+    Edit an owner data
+    :param id: the owner id
+    :return:
+    """
     data = request.get_json()
     owner = models.Owner.query.get(id)
 
@@ -58,6 +72,10 @@ def owner_edit(id):
 
 
 def owner_add():
+    """
+    Adds an owner
+    :return:
+    """
     data = request.get_json()
     owner, errors = owner_schema.load(data, )
     if not errors:
@@ -71,6 +89,11 @@ def owner_add():
 
 
 def owner_delete(id):
+    """
+    Deletes an owner
+    :param id: the owner id
+    :return:
+    """
     owner = models.Owner.query.get(id)
     if owner:
         owner.delete()

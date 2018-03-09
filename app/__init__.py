@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from flask_api import FlaskAPI
+from flask import current_app, jsonify
 
 # DB design :
 # Users 1-1 Owner
@@ -20,6 +21,15 @@ from .users import users, user_read, user_edit, user_add, user_delete
 from instance.config import app_config
 
 
+def api_details():
+    """Print available functions."""
+    func_list = {}
+    for rule in current_app.url_map.iter_rules():
+        if rule.endpoint != 'static':
+            func_list[rule.rule] = current_app.view_functions[rule.endpoint].__doc__
+    return jsonify(func_list)
+
+
 def create_app(config_name):
     app = FlaskAPI(__name__, instance_relative_config=True)  # __name__ is required to find the instance folder
 
@@ -35,6 +45,8 @@ def create_app(config_name):
 
     # setup routing (has to be done dynamically, and not on import).
     # TODO : api in blue print... ( check with flask api )
+
+    app.add_url_rule('/api/', view_func=api_details)
     app.add_url_rule('/api/users/', view_func=users)
     app.add_url_rule('/api/users/<id>', view_func=user_read, methods=["GET"])
     app.add_url_rule('/api/users/<id>', view_func=user_edit, methods=["PUT"])

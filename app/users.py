@@ -11,6 +11,10 @@ from marshmallow import post_load
 
 
 def users():
+    """
+    Retrieve all users
+    :return:
+    """
     all_users = models.User.all()
     user_dict, errors = user_schema.dump(all_users, many=True)
     if not errors:
@@ -20,6 +24,11 @@ def users():
 
 
 def user_read(id):
+    """
+    Retrieve one user
+    :param id:
+    :return:
+    """
     user = models.User.query.get(id)
     if not user:
         return '', http.HTTPStatus.NOT_FOUND
@@ -30,17 +39,12 @@ def user_read(id):
         return '', http.HTTPStatus.INTERNAL_SERVER_ERROR
 
 
-# {
-#     "email": "fred@queen.com",
-#     "date_created": "Fri, 25 Apr 2014 06:02:56 -0000",
-#     "_links": {
-#         "self": "/api/authors/42",
-#         "collection": "/api/authors/"
-#     }
-# }
-
-
 def user_edit(id):
+    """
+    Edit user data
+    :param id: the user id
+    :return:
+    """
     data = request.get_json()
     user = models.User.query.get(id)
 
@@ -58,6 +62,10 @@ def user_edit(id):
 
 
 def user_add():
+    """
+    Adds a user
+    :return:
+    """
     data = request.get_json()
     user, errors = user_schema.load(data, )
     if not errors:
@@ -71,12 +79,18 @@ def user_add():
 
 
 def user_delete(id):
+    """
+    Removes a user
+    :param id: the user id
+    :return:
+    """
     user = models.User.query.get(id)
     if user:
         user.delete()
         return '', http.HTTPStatus.NO_CONTENT
     else:
         return '', http.HTTPStatus.NOT_FOUND
+
 
 if __name__ == "__main__":
     import doctest
