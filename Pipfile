@@ -23,6 +23,7 @@ mixer = "*"
 "psycopg2" = "*"
 hypothesis = "*"
 marshmallow-sqlalchemy = "*"
+gunicorn = "*"
 
 
 [dev-packages]

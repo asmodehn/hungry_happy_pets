@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "5c89a8759ed7ab3238b94ed2ed8f13f94cfca43cc735c5fe54225bbfad7e9ff4"
+            "sha256": "ead5908b16acda198fbfa6d979fedf1ad6e5a0ab92c9f8d21a06b1912e9a3690"
         },
         "host-environment-markers": {
             "implementation_name": "cpython",
@@ -137,6 +137,13 @@
             ],
             "version": "==2.3.2"
         },
+        "gunicorn": {
+            "hashes": [
+                "sha256:75af03c99389535f218cc596c7de74df4763803f7b63eb09d77e92b3956b36c6",
+                "sha256:eee1169f0ca667be05db3351a0960765620dad53f53434262ff8901b68a1b622"
+            ],
+            "version": "==19.7.1"
+        },
         "hypothesis": {
             "hashes": [
                 "sha256:b26943fa3e0dc7127671cf37822bf061b83cc31d4ac23ceb0ebc12f93b1933ce"
@@ -262,9 +269,9 @@
         },
         "sqlalchemy": {
             "hashes": [
-                "sha256:6997507af46b10630e13b605ac278b78885fd683d038896dbee0e7ec41d809d2"
+                "sha256:249000654107a420a40200f1e0b555a79dfd4eff235b2ff60bc77714bd045f2d"
             ],
-            "version": "==1.2.4"
+            "version": "==1.2.5"
         },
         "sqlalchemy-utils": {
             "hashes": [
