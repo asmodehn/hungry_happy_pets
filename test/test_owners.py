@@ -134,6 +134,7 @@ def test_api_can_get_owner_by_id(nick, email):
 @given(nick=st.text(), email=st.text())
 def test_owner_creation(nick, email):
     """Test API can create a user (POST request)"""
+
     # binds the app to the current context
     with clean_app_test_client(config_name="testing") as client:
 
@@ -153,9 +154,9 @@ def test_owner_creation(nick, email):
             assert user == test_data.get('user')
             assert None == test_data.get('pets')
 
-            # deleting owner before dropping user
-            owner_loaded, owner_errors = owner_schema.load(test_data)
-            owner_loaded.delete()
+            # deleting matching owner from db before dropping user
+            owner = models.Owner.query.get(test_data.get('id'))
+            owner.delete()
 
 
 # DELETE

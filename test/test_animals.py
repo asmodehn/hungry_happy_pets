@@ -171,9 +171,9 @@ def test_animal_creation(name, happy, hungry):
                 assert test_data.get('happy') == happy
                 assert test_data.get('hungry') == hungry
 
-                # deleting animal before dropping species
-                animal_loaded, animal_errors = animal_schema.load(test_data)
-                animal_loaded.delete()
+                # deleting matching animal from db before dropping species
+                animal = models.Animal.query.get(test_data.get('id'))
+                animal.delete()
 
 
 # DELETE
