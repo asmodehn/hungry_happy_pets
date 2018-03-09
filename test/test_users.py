@@ -14,7 +14,7 @@ from app.users import user_schema
 
 # BROWSE
 @st.composite
-def tie_len_strat(draw, st1, st2):
+def zip_strat(draw, st1, st2):
     # we need to draw separately (useful to guarantee some properties - like uniqueness)
     list1 = draw(st1)
     list2 = draw(st2)
@@ -23,7 +23,7 @@ def tie_len_strat(draw, st1, st2):
 
 
 # CAREFUL : See : https://github.com/pytest-dev/pytest/issues/916
-@given(nicks_emails=tie_len_strat(st.lists(st.text(), unique=True), st.lists(st.text(), unique=True) ))
+@given(nicks_emails=zip_strat(st.lists(st.text(), unique=True), st.lists(st.text(), unique=True)))
 def test_api_can_get_users(nicks_emails):
     """Test API can get a user (GET request)."""
 

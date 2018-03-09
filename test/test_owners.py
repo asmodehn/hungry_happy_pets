@@ -7,57 +7,61 @@ from hypothesis import given
 import hypothesis.strategies as st
 
 try:
-    from .utils import clean_app_test_client
+    from .utils import clean_app_test_client, dummy_user, dummy_user_list
 except SystemError:
-    from utils import clean_app_test_client
+    from utils import clean_app_test_client, dummy_user, dummy_user_list
 
 from app.owners import models, owner_schema
 
 
 
 # BROWSE
-@given(st.lists(elements=st.fixed_dictionaries({'nick': st.text(), 'email': st.text()})))
-def test_api_can_get_owners(dict_list):
+@st.composite
+def zip_strat(draw, st1, st2):
+    # we need to draw separately (useful to guarantee some properties - like uniqueness)
+    list1 = draw(st1)
+    list2 = draw(st2)
+    # and zip it
+    return zip(list1, list2)
+
+
+@given(nicks_emails=zip_strat(st.lists(st.text(), unique=True), st.lists(st.text(), unique=True)))
+def test_api_can_get_owners(nicks_emails):
     """Test API can get a user (GET request)."""
 
     # binds the app to the current context
     with clean_app_test_client(config_name="testing") as client:
 
-        for d in dict_list:
+        with dummy_user_list(nicks_emails) as user_list:
 
-            # generating a user from hypothesis data via marshmallow
-            user_loaded = owner_schema.load({'nick': d.get('nick'), 'email': d.get('email')})
-            user = user_loaded.data
-            #print(user)
+            own_list = []
+            for user in user_list:
 
-            # writing to DB
-            user.save()
+                # generating its owner
+                owner_loaded = owner_schema.load({'user_id': user.get('id')})
+                owner = owner_loaded.data
+                # print(owner)
 
-        result = client.get('/api/owners/')
-        assert result.status_code == 200
-        test_data = json.loads(result.data.decode('utf-8'))
+                # writing to DB
+                owner.save()
 
-        assert len(test_data) == len(dict_list)
-        for u in test_data:
-            assert u in dict_list
+                own_list.append(owner)
 
-        for d in dict_list:
-            assert d in test_data
+            result = client.get('/api/owners/')
+            assert result.status_code == 200
+            test_data = json.loads(result.data.decode('utf-8'))
 
-        #print(test_data)
+            assert len(test_data) == len(user_list)
+            for u in test_data:
+                assert u.get('user') in user_list
 
-        # TODO assert
-        # for m in test_models:
-        #     for d in test_data:
-        #         for k,v  in d.items():
-        #             self.assertEqual(getattr(m, k), v)
-        #             d = user_schema.jsonify(m)
-        #     self.assertIn(d, test_data)
-        #
-        # # to make sure we didnt create any extra data
-        # for d in test_data:
-        #     m = user_schema.load(d)
-        #     self.assertIn(m, test_models)
+            for d in user_list:
+                assert d in [t.get('user') for t in test_data]
+
+            for o in own_list:
+                # deleting owner before dropping user
+                o.delete()
+
 
 # READ
 @given(nick=st.text(), email=st.text())
@@ -66,59 +70,62 @@ def test_api_can_get_owner_by_id(nick, email):
     # binds the app to the current context
     with clean_app_test_client(config_name="testing") as client:
 
-        # generating a user from hypothesis data via marshmallow
-        # since we want to prevent user creation from owner API
-        # keep resources tests independent
-        user = models.User(nick='testuser', email='tester@comp.any')
+        with dummy_user(nick='testuser', email='tester@comp.any') as user:
 
-        # generating its owner
-        owner_loaded = owner_schema.load({'user_id': user.id})
-        owner = owner_loaded.data
-        #print(owner)
+            # generating its owner
+            owner_loaded = owner_schema.load({'user_id': user.get('id')})
+            owner = owner_loaded.data
+            #print(owner)
 
-        # writing to DB
-        owner.save()
+            # writing to DB
+            owner.save()
 
-        result = client.get('/api/owners/{}'.format(owner.id))
-        assert result.status_code == 200
-        test_data = json.loads(result.data.decode('utf-8'))
-        assert test_data.get('nick') == owner.nick
-        assert test_data.get('email') == owner.email
-        #print(test_data)
+            result = client.get('/api/owners/{}'.format(owner.id))
+            assert result.status_code == 200
+            test_data = json.loads(result.data.decode('utf-8'))
+            # checking populated user data
+            assert test_data.get('user') == user
+            # checking populated pets data
+            assert test_data.get('pets') == None  #or [] ??
 
-# EDIT
-@given(nick=st.text(), email=st.text(), new_email=st.text())
-def test_owner_email_can_be_edited(nick, email, new_email):
-    """Test API can edit an existing owner. (PUT request)"""
+            # deleting owner before dropping user
+            owner.delete()
 
-    # binds the app to the current context
-    with clean_app_test_client(config_name="testing") as client:
+            #print(test_data)
 
-        # generating a user from hypothesis data via marshmallow
-        user_loaded = owner_schema.load({'nick': nick, 'email': email})
-        user = user_loaded.data
-        # print(user)
-
-        # writing to DB
-        user.save()
-
-        result = client.put(
-            '/api/owners/{}'.format(user.id),
-            headers={'Content-Type': 'application/json'},
-            data=json.dumps({"email": new_email})
-        )
-        assert result.status_code == 200
-        test_data = json.loads(result.data.decode('utf-8'))
-        assert test_data.get('nick') == user.nick
-        assert test_data.get('email') == new_email
-        # print(test_data)
-
-        # another request to insure persistence
-        result = client.get('/api/owners/{}'.format(user.id))
-        assert result.status_code == 200
-        test_data = json.loads(result.data.decode('utf-8'))
-        assert test_data.get('nick') == user.nick
-        assert test_data.get('email') == new_email
+# # EDIT
+# @given(nick=st.text(), email=st.text(), new_email=st.text())
+# def test_owner_pets_can_be_edited(nick, email, new_email):
+#     """Test API can edit an existing owner. (PUT request)"""
+#
+#     # binds the app to the current context
+#     with clean_app_test_client(config_name="testing") as client:
+#
+#         # generating a user from hypothesis data via marshmallow
+#         user_loaded = owner_schema.load({'nick': nick, 'email': email})
+#         user = user_loaded.data
+#         # print(user)
+#
+#         # writing to DB
+#         user.save()
+#
+#         result = client.put(
+#             '/api/owners/{}'.format(user.id),
+#             headers={'Content-Type': 'application/json'},
+#             data=json.dumps({"email": new_email})
+#         )
+#         assert result.status_code == 200
+#         test_data = json.loads(result.data.decode('utf-8'))
+#         assert test_data.get('nick') == user.nick
+#         assert test_data.get('email') == new_email
+#         # print(test_data)
+#
+#         # another request to insure persistence
+#         result = client.get('/api/owners/{}'.format(user.id))
+#         assert result.status_code == 200
+#         test_data = json.loads(result.data.decode('utf-8'))
+#         assert test_data.get('nick') == user.nick
+#         assert test_data.get('email') == new_email
 
 # TODO : More edits (check if allowed or not)
 
@@ -130,43 +137,52 @@ def test_owner_creation(nick, email):
     # binds the app to the current context
     with clean_app_test_client(config_name="testing") as client:
 
-        res = client.post(
-            '/api/users/',
-            headers={'Content-Type': 'application/json'},
-            data=json.dumps({'nick': nick, 'email': email}))
-        assert res.status_code == 201
-        new_user = json.loads(res.data.decode('utf-8'))
+        with dummy_user(nick='testuser', email='tester@comp.any') as user:
 
-        # consecutive request with id
-        result = client.get('/api/owners/{}'.format(new_user.get('id')))
-        assert result.status_code == 200
-        test_data = json.loads(result.data.decode('utf-8'))
-        assert test_data.get('nick') == nick
-        assert test_data.get('email') == email
+            res = client.post(
+                '/api/owners/',
+                headers={'Content-Type': 'application/json'},
+                data=json.dumps({'user_id': user.get('id')}))
+            assert res.status_code == 201
+            new_owner = json.loads(res.data.decode('utf-8'))
+
+            # consecutive request with id
+            result = client.get('/api/owners/{}'.format(new_owner.get('id')))
+            assert result.status_code == 200
+            test_data = json.loads(result.data.decode('utf-8'))
+            assert user == test_data.get('user')
+            assert None == test_data.get('pets')
+
+            # deleting owner before dropping user
+            owner_loaded, owner_errors = owner_schema.load(test_data)
+            owner_loaded.delete()
 
 
 # DELETE
 @given(nick=st.text(), email=st.text())
-def test_user_deletion(nick, email):
+def test_owner_deletion(nick, email):
     """Test API can delete an existing user. (DELETE request)."""
 
     # binds the app to the current context
     with clean_app_test_client(config_name="testing") as client:
 
-        # generating a user from hypothesis data via marshmallow
-        user_loaded = owner_schema.load({'nick': nick, 'email': email})
-        user = user_loaded.data
-        # print(user)
+        with dummy_user(nick=nick, email=email) as user:
 
-        # writing to DB
-        user.save()
+            # generating a owner from hypothesis data via marshmallow
+            owner_loaded = owner_schema.load({'user_id': user.get('id')})
+            owner = owner_loaded.data
 
-        res = client.delete('/api/owners/{}'.format(user.id))
-        assert res.status_code == 204
+            # writing to DB
+            owner.save()
 
-        # Test to see if it exists, should return a 404
-        result = client.get('/api/owners/{}'.format(user.id))
-        assert result.status_code == 404
+            res = client.delete('/api/owners/{}'.format(user.get('id')))
+            assert res.status_code == 204
+
+            # Test to see if it exists, should return a 404
+            result = client.get('/api/owners/{}'.format(user.get('id')))
+            assert result.status_code == 404
+
+            # finally we can delete the user
 
 
 # Make the tests conveniently executable

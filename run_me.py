@@ -2,7 +2,7 @@ import os
 
 import click
 
-from app import create_app, db
+from app import create_app, models
 
 from flask_migrate import Migrate
 
@@ -14,7 +14,7 @@ config_name = os.getenv('APP_SETTINGS') or "development"
 app = create_app(config_name)
 
 # instantiate migration context ( access via "flask db" command )
-migrate = Migrate(app, db)
+migrate = Migrate(app, models.db)
 
 
 @app.cli.command()

@@ -46,7 +46,7 @@ class Owner(db.Model):
     #uuid = db.Column(UUIDType(binary=False))  # http://docs.sqlalchemy.org/en/rel_0_9/core/custom_types.html?highlight=guid#backend-agnostic-guid-type
     #name = db.Column(db.String)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    pets = db.relationship('Animal', backref='owner', lazy=True)
+    pets = db.relationship('Animal', backref='owner', lazy=True, uselist=True)
 
 
     # authoring

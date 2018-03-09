@@ -2,6 +2,9 @@ import unittest
 import os
 import json
 
+from hypothesis import given
+import hypothesis.strategies as st
+
 try:
     from .utils import clean_app_test_client
 except SystemError:
@@ -10,48 +13,43 @@ except SystemError:
 
 
 # BROWSE
-@given(st.lists(elements=st.fixed_dictionaries({'nick': st.text(), 'email': st.text()})))
-def test_api_can_get_owners(dict_list):
+@given(names=st.lists(st.text()), data=st.data())
+def test_api_can_get_animals(names, data):
     """Test API can get a user (GET request)."""
 
     # binds the app to the current context
     with clean_app_test_client(config_name="testing") as client:
 
-        for d in dict_list:
+        dict_list = []
 
-            # generating a user from hypothesis data via marshmallow
-            user_loaded = owner_schema.load({'nick': d.get('nick'), 'email': d.get('email')})
-            user = user_loaded.data
-            #print(user)
+        for name in names:
+            # SQL INTEGER range
+            happy_rate = data.draw(st.integers(min_value=-2147483648, max_value=2147483647), label='happy_rate')
+            hunger_rate = data.draw(st.integers(min_value=-2147483648, max_value=2147483647), label='hunger_rate')
+
+            # building local dict to compare later
+            dict_list.append({'name': name, 'happy_rate': happy_rate, 'hunger_rate': hunger_rate})
+
+            # generating a species from hypothesis data via marshmallow
+            animal_loaded = animals_schema.load({'name': name, 'happy_rate': happy_rate, 'hunger_rate': hunger_rate})
+            animal = animal_loaded.data
+            # print(species)
 
             # writing to DB
-            user.save()
+            animal.save()
 
-        result = client.get('/api/owners/')
+        result = client.get('/api/animals/')
         assert result.status_code == 200
         test_data = json.loads(result.data.decode('utf-8'))
 
         assert len(test_data) == len(dict_list)
         for u in test_data:
-            self.assertIn(u, dict_list)
+            assert {'name': u.get('name'), 'happy_rate': u.get('happy_rate'),
+                    'hunger_rate': u.get('hunger_rate')} in dict_list
 
         for d in dict_list:
-            self.assertIn(d, test_data)
-
-        #print(test_data)
-
-        # TODO assert
-        # for m in test_models:
-        #     for d in test_data:
-        #         for k,v  in d.items():
-        #             self.assertEqual(getattr(m, k), v)
-        #             d = user_schema.jsonify(m)
-        #     self.assertIn(d, test_data)
-        #
-        # # to make sure we didnt create any extra data
-        # for d in test_data:
-        #     m = user_schema.load(d)
-        #     self.assertIn(m, test_models)
+            assert d in [{'name': t.get('name'), 'happy_rate': t.get('happy_rate'), 'hunger_rate': t.get('hunger_rate')}
+                         for t in test_data]
 
 # READ
 @given(nick=st.text(), email=st.text())

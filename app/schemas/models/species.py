@@ -45,7 +45,7 @@ class Species(db.Model):
     #hunger_rate = db.Column(db.Numeric(precision=None, scale=None, decimal_return_scale=None, asdecimal=True))
     hunger_rate = db.Column(db.Integer())  # avoiding float issues
 
-    members = db.relationship('Animal', backref='species', lazy=True)
+    members = db.relationship('Animal', backref='species', lazy=True, uselist=True)
 
     # authoring
     date_created = db.Column(db.DateTime, default=db.func.current_timestamp())

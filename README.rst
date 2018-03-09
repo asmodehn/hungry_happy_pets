@@ -1,5 +1,6 @@
 Hungry Happy Pets
 
+A simple flask-based, heroku-ready, backend REST API.
 
 Just run it Now !
 =================
