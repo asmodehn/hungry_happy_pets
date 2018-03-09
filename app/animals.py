@@ -1,32 +1,94 @@
+import http
+
 try:
     from .schemas import models, animal_schema
 except SystemError:  # in case we call this module directly (doctest)
     from schemas import models, animal_schema
 
-
-from sqlalchemy_utils import PasswordType, EmailType, UUIDType, ColorType  #,NumericRangeType
-from flask import jsonify
-from marshmallow import fields
+from flask import jsonify, request
 
 
 
 def animals():
+    """
+    Retrieves all animals
+    :return:
+    """
     all_animals = models.Animal.all()
-    result = animal_schema.dump(all_animals, many=True)
-    return jsonify(result.data)
+    animal_dict, errors = animal_schema.dump(all_animals, many=True)
+    if not errors:
+        return animal_dict
+    else:  # break properly
+        return '', http.HTTPStatus.INTERNAL_SERVER_ERROR
 
 
-def animals_detail(id):
+def animal_read(id):
+    """
+    Retrieve an animal
+    :param id:
+    :return:
+    """
     animal = models.Animal.query.get(id)
-    return animal_schema.jsonify(animal)
-# {
-#     "email": "fred@queen.com",
-#     "date_created": "Fri, 25 Apr 2014 06:02:56 -0000",
-#     "_links": {
-#         "self": "/api/authors/42",
-#         "collection": "/api/authors/"
-#     }
-# }
+    if not animal:
+        return '', http.HTTPStatus.NOT_FOUND
+    animal_dict, errors = animal_schema.dump(animal)
+    if not errors:
+        return animal_dict
+    else:  # break properly
+        return '', http.HTTPStatus.INTERNAL_SERVER_ERROR
+
+
+def animal_edit(id):
+    """
+    Edit an animal data
+    :param id: the animal id
+    :return:
+    """
+    data = request.get_json()
+    animal = models.Animal.query.get(id)
+
+    if not animal:
+        return '', http.HTTPStatus.NOT_FOUND
+
+    for k, v in data.items():
+        setattr(animal, k, v)
+
+    user_dict, errors = animal_schema.dump(animal)
+    if not errors:
+        return user_dict
+    else:  # break properly
+        return '', http.HTTPStatus.INTERNAL_SERVER_ERROR
+
+
+def animal_add():
+    """
+    Adds an animal
+    :return:
+    """
+    data = request.get_json()
+    animal, errors = animal_schema.load(data, )
+    if not errors:
+        animal.save()
+
+    animal_dict, errors = animal_schema.dump(animal)
+    if not errors:
+        return animal_dict, http.HTTPStatus.CREATED
+    else:  # break properly
+        return '', http.HTTPStatus.INTERNAL_SERVER_ERROR
+
+
+def animal_delete(id):
+    """
+    Deletes an owner
+    :param id: the owner id
+    :return:
+    """
+    animal = models.Animal.query.get(id)
+    if animal:
+        animal.delete()
+        return '', http.HTTPStatus.NO_CONTENT
+    else:
+        return '', http.HTTPStatus.NOT_FOUND
 
 
 if __name__ == "__main__":

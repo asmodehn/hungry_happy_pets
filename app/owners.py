@@ -29,24 +29,14 @@ def owner_read(id):
     :param id:
     :return:
     """
-    user = models.Owner.query.get(id)
-    if not user:
+    owner = models.Owner.query.get(id)
+    if not owner:
         return '', http.HTTPStatus.NOT_FOUND
-    user_dict, errors = owner_schema.dump(user)
+    owner_dict, errors = owner_schema.dump(owner)
     if not errors:
-        return user_dict
+        return owner_dict
     else:  # break properly
         return '', http.HTTPStatus.INTERNAL_SERVER_ERROR
-
-
-# {
-#     "email": "fred@queen.com",
-#     "date_created": "Fri, 25 Apr 2014 06:02:56 -0000",
-#     "_links": {
-#         "self": "/api/authors/42",
-#         "collection": "/api/authors/"
-#     }
-# }
 
 
 def owner_edit(id):

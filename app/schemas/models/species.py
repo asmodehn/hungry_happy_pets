@@ -40,10 +40,10 @@ class Species(db.Model):
     #TODO color = db.Column(ColorType)  # some visible attribute for user & designers
     #happy_range = db.Column(NumericRangeType)
     #happy_rate = db.Column(db.Numeric(precision=None, scale=None, decimal_return_scale=None, asdecimal=True))
-    happy_rate = db.Column(db.Integer())  # avoiding float issues
+    happy_rate = db.Column(db.Integer(), default=0)  # avoiding float issues
     #hunger_range = db.Column(NumericRangeType)
     #hunger_rate = db.Column(db.Numeric(precision=None, scale=None, decimal_return_scale=None, asdecimal=True))
-    hunger_rate = db.Column(db.Integer())  # avoiding float issues
+    hunger_rate = db.Column(db.Integer(), default=0)  # avoiding float issues
 
     members = db.relationship('Animal', backref='species', lazy=True, uselist=True)
 

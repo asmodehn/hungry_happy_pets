@@ -12,7 +12,7 @@ from flask import current_app, jsonify
 # Note here we try to keep a bijective ORM - Schema - REST resource relationship, to keep app structure simple
 
 from .schemas import models, ma
-from .animals import animals, animals_detail
+from .animals import animals, animal_read, animal_edit, animal_add, animal_delete
 from .species import species, species_read, species_edit, species_add, species_delete
 from .owners import owners, owner_read, owner_edit, owner_add, owner_delete
 from .users import users, user_read, user_edit, user_add, user_delete
@@ -70,6 +70,9 @@ def create_app(config_name):
     app.add_url_rule('/api/species/<id>', view_func=species_delete, methods=["DELETE"])
 
     app.add_url_rule('/api/animals/', view_func=animals)
-    app.add_url_rule('/api/animals/<id>', view_func=animals_detail)
+    app.add_url_rule('/api/animals/<id>', view_func=animal_read, methods=["GET"])
+    app.add_url_rule('/api/animals/<id>', view_func=animal_edit, methods=["PUT"])
+    app.add_url_rule('/api/animals/', view_func=animal_add, methods=["POST"])
+    app.add_url_rule('/api/animals/<id>', view_func=animal_delete, methods=["DELETE"])
 
     return app

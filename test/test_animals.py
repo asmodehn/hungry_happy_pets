@@ -6,10 +6,11 @@ from hypothesis import given
 import hypothesis.strategies as st
 
 try:
-    from .utils import clean_app_test_client
+    from .utils import clean_app_test_client, dummy_owner, dummy_species
 except SystemError:
-    from utils import clean_app_test_client
+    from utils import clean_app_test_client, dummy_owner, dummy_species
 
+from app.animals import models, animal_schema
 
 
 # BROWSE
@@ -20,142 +21,187 @@ def test_api_can_get_animals(names, data):
     # binds the app to the current context
     with clean_app_test_client(config_name="testing") as client:
 
-        dict_list = []
+        with dummy_owner() as owner:
 
-        for name in names:
-            # SQL INTEGER range
-            happy_rate = data.draw(st.integers(min_value=-2147483648, max_value=2147483647), label='happy_rate')
-            hunger_rate = data.draw(st.integers(min_value=-2147483648, max_value=2147483647), label='hunger_rate')
+            with dummy_species() as species:
 
-            # building local dict to compare later
-            dict_list.append({'name': name, 'happy_rate': happy_rate, 'hunger_rate': hunger_rate})
+                dict_list = []
+                animal_list = []
+                for name in names:
+                    # SQL INTEGER range
+                    happy = data.draw(st.integers(min_value=-2147483648, max_value=2147483647), label='happy')
+                    hungry = data.draw(st.integers(min_value=-2147483648, max_value=2147483647), label='hungry')
 
-            # generating a species from hypothesis data via marshmallow
-            animal_loaded = animals_schema.load({'name': name, 'happy_rate': happy_rate, 'hunger_rate': hunger_rate})
-            animal = animal_loaded.data
-            # print(species)
+                    # building local dict to compare later
+                    dict_list.append({'name': name, 'happy': happy, 'hungry': hungry})
 
-            # writing to DB
-            animal.save()
+                    # generating a species from hypothesis data via marshmallow
+                    animal_loaded = animal_schema.load({
+                        'name': name,
+                        'happy': happy,
+                        'hungry': hungry,
+                        'species_id': species.get('id'),
+                        'owner_id': owner.get('id'),
+                    })
+                    animal = animal_loaded.data
+                    # print(species)
 
-        result = client.get('/api/animals/')
-        assert result.status_code == 200
-        test_data = json.loads(result.data.decode('utf-8'))
+                    # writing to DB
+                    animal.save()
 
-        assert len(test_data) == len(dict_list)
-        for u in test_data:
-            assert {'name': u.get('name'), 'happy_rate': u.get('happy_rate'),
-                    'hunger_rate': u.get('hunger_rate')} in dict_list
+                    animal_list.append(animal)
 
-        for d in dict_list:
-            assert d in [{'name': t.get('name'), 'happy_rate': t.get('happy_rate'), 'hunger_rate': t.get('hunger_rate')}
-                         for t in test_data]
+                result = client.get('/api/animals/')
+                assert result.status_code == 200
+                test_data = json.loads(result.data.decode('utf-8'))
+
+                assert len(test_data) == len(dict_list)
+                for u in test_data:
+                    assert {'name': u.get('name'), 'happy': u.get('happy'),
+                            'hungry': u.get('hungry')} in dict_list
+
+                for d in dict_list:
+                    assert d in [{'name': t.get('name'), 'happy': t.get('happy'), 'hungry': t.get('hungry')}
+                                 for t in test_data]
+
+                for a in animal_list:
+                    # deleting animal before dropping species
+                    a.delete()
+
 
 # READ
-@given(nick=st.text(), email=st.text())
-def test_api_can_get_owner_by_id(nick, email):
+@given(name=st.text(), data=st.data())
+def test_api_can_get_animal_by_id(name, data):
     """Test API can get a single owner by using it's id."""
     # binds the app to the current context
     with clean_app_test_client(config_name="testing") as client:
 
-        # generating a user from hypothesis data via marshmallow
+        with dummy_owner() as owner:
 
-        # generating its owner
-        owner_loaded = owner_schema.load(user={'nick': nick, 'email': email})
-        owner = owner_loaded.data
-        #print(owner)
+            with dummy_species() as species:
 
-        # writing to DB
-        owner.save()
+                # SQL INTEGER range
+                happy = data.draw(st.integers(min_value=-2147483648, max_value=2147483647), label='happy')
+                hungry = data.draw(st.integers(min_value=-2147483648, max_value=2147483647), label='hungry')
 
-        result = client.get('/api/owners/{}'.format(owner.id))
-        assert result.status_code == 200
-        test_data = json.loads(result.data.decode('utf-8'))
-        assert test_data.get('nick') == owner.nick
-        assert test_data.get('email') == owner.email
-        #print(test_data)
+                # generating an animal from hypothesis data via marshmallow
+                animal_loaded = animal_schema.load({
+                    'name': name,
+                    'happy': happy,
+                    'hungry': hungry,
+                    'species_id': species.get('id'),
+                    'owner_id': owner.get('id'),
+                })
+                animal = animal_loaded.data
 
-# EDIT
-@given(nick=st.text(), email=st.text(), new_email=st.text())
-def test_owner_email_can_be_edited(nick, email, new_email):
-    """Test API can edit an existing owner. (PUT request)"""
+                # writing to DB
+                animal.save()
 
-    # binds the app to the current context
-    with clean_app_test_client(config_name="testing") as client:
+                result = client.get('/api/animals/{}'.format(animal.id))
+                assert result.status_code == 200
+                test_data = json.loads(result.data.decode('utf-8'))
+                assert test_data.get('name') == animal.name
+                assert test_data.get('happy') == animal.happy
+                assert test_data.get('hungry') == animal.hungry
 
-        # generating a user from hypothesis data via marshmallow
-        user_loaded = owner_schema.load({'nick': nick, 'email': email})
-        user = user_loaded.data
-        # print(user)
-
-        # writing to DB
-        user.save()
-
-        result = client.put(
-            '/api/owners/{}'.format(user.id),
-            headers={'Content-Type': 'application/json'},
-            data=json.dumps({"email": new_email})
-        )
-        assert result.status_code == 200
-        test_data = json.loads(result.data.decode('utf-8'))
-        assert test_data.get('nick') == user.nick
-        assert test_data.get('email') == new_email
-        # print(test_data)
-
-        # another request to insure persistence
-        result = client.get('/api/owners/{}'.format(user.id))
-        assert result.status_code == 200
-        test_data = json.loads(result.data.decode('utf-8'))
-        assert test_data.get('nick') == user.nick
-        assert test_data.get('email') == new_email
-
-# TODO : More edits (check if allowed or not)
+                # deleting from db before dropping required species
+                animal.delete()
+#
+#
+# # EDIT
+# @given(nick=st.text(), email=st.text(), new_email=st.text())
+# def test_owner_email_can_be_edited(nick, email, new_email):
+#     """Test API can edit an existing owner. (PUT request)"""
+#
+#     # binds the app to the current context
+#     with clean_app_test_client(config_name="testing") as client:
+#
+#         # generating a user from hypothesis data via marshmallow
+#         user_loaded = owner_schema.load({'nick': nick, 'email': email})
+#         user = user_loaded.data
+#         # print(user)
+#
+#         # writing to DB
+#         user.save()
+#
+#         result = client.put(
+#             '/api/owners/{}'.format(user.id),
+#             headers={'Content-Type': 'application/json'},
+#             data=json.dumps({"email": new_email})
+#         )
+#         assert result.status_code == 200
+#         test_data = json.loads(result.data.decode('utf-8'))
+#         assert test_data.get('nick') == user.nick
+#         assert test_data.get('email') == new_email
+#         # print(test_data)
+#
+#         # another request to insure persistence
+#         result = client.get('/api/owners/{}'.format(user.id))
+#         assert result.status_code == 200
+#         test_data = json.loads(result.data.decode('utf-8'))
+#         assert test_data.get('nick') == user.nick
+#         assert test_data.get('email') == new_email
+#
+# # TODO : More edits (check if allowed or not)
 
 
 # ADD
-@given(nick=st.text(), email=st.text())
-def test_owner_creation(nick, email):
+@given(name=st.text(), happy=st.integers(min_value=-2147483648, max_value=2147483647), hungry=st.integers(min_value=-2147483648, max_value=2147483647))
+def test_animal_creation(name, happy, hungry):
     """Test API can create a user (POST request)"""
     # binds the app to the current context
     with clean_app_test_client(config_name="testing") as client:
 
-        res = client.post(
-            '/api/users/',
-            headers={'Content-Type': 'application/json'},
-            data=json.dumps({'nick': nick, 'email': email}))
-        assert res.status_code == 201
-        new_user = json.loads(res.data.decode('utf-8'))
+        with dummy_owner() as owner:
 
-        # consecutive request with id
-        result = client.get('/api/owners/{}'.format(new_user.get('id')))
-        assert result.status_code == 200
-        test_data = json.loads(result.data.decode('utf-8'))
-        assert test_data.get('nick') == nick
-        assert test_data.get('email') == email
+            with dummy_species() as species:
+
+                res = client.post(
+                    '/api/animals/',
+                    headers={'Content-Type': 'application/json'},
+                    data=json.dumps({'name': name, 'happy': happy, 'hungry': hungry, 'species_id': species.get('id'), 'owner_id': owner.get('id')}))
+                assert res.status_code == 201
+                new_animal = json.loads(res.data.decode('utf-8'))
+
+                # consecutive request with id
+                result = client.get('/api/animals/{}'.format(new_animal.get('id')))
+                assert result.status_code == 200
+                test_data = json.loads(result.data.decode('utf-8'))
+                assert test_data.get('name') == name
+                assert test_data.get('happy') == happy
+                assert test_data.get('hungry') == hungry
+
+                # deleting animal before dropping species
+                animal_loaded, animal_errors = animal_schema.load(test_data)
+                animal_loaded.delete()
 
 
 # DELETE
-@given(nick=st.text(), email=st.text())
-def test_user_deletion(nick, email):
+@given(name=st.text(), happy=st.integers(min_value=-2147483648, max_value=2147483647), hungry=st.integers(min_value=-2147483648, max_value=2147483647))
+def test_animal_deletion(name, happy, hungry):
     """Test API can delete an existing user. (DELETE request)."""
 
     # binds the app to the current context
     with clean_app_test_client(config_name="testing") as client:
 
-        # generating a user from hypothesis data via marshmallow
-        user_loaded = owner_schema.load({'nick': nick, 'email': email})
-        user = user_loaded.data
-        # print(user)
+        with dummy_owner() as owner:
 
-        # writing to DB
-        user.save()
+            with dummy_species() as species:
 
-        res = client.delete('/api/owners/{}'.format(user.id))
-        assert res.status_code == 204
+                # generating a user from hypothesis data via marshmallow
+                animal_loaded = animal_schema.load({'name': name, 'happy': happy, 'hungry': hungry, 'species_id': species.get('id'), 'owner_id': owner.get('id')})
+                animal = animal_loaded.data
+                # print(user)
 
-        # Test to see if it exists, should return a 404
-        result = client.get('/api/owners/{}'.format(user.id))
-        assert result.status_code == 404
+                # writing to DB
+                animal.save()
+
+                res = client.delete('/api/animals/{}'.format(animal.id))
+                assert 204 == res.status_code
+
+                # Test to see if it exists, should return a 404
+                result = client.get('/api/animals/{}'.format(animal.id))
+                assert 404 == result.status_code
 
 
 # Make the tests conveniently executable

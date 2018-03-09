@@ -61,12 +61,12 @@ def dummy_user_list(nick_email_list=None):
 
 
 @contextlib.contextmanager
-def dummy_owner(session):
+def dummy_owner(nick=None, email=None):
 
-    with dummy_user(session) as user_data:
+    with dummy_user(nick=nick, email=email) as user_data:
 
         # generating a owner from hypothesis data via marshmallow
-        owner_loaded = schemas.owner_schema.load({'user_id': user_data.id})
+        owner_loaded = schemas.owner_schema.load({'user_id': user_data.get('id')})
         owner = owner_loaded.data
 
         # writing to DB
@@ -76,16 +76,45 @@ def dummy_owner(session):
 
         owner.delete()
 
-#
-# @contextlib.contextmanager
-# def dummy_species(session):
-#     species_data = models.Species(name='testspecies', happy_rate=5, hunger_rate=23)
-#     species_data.save(session=session)
-#
-#     yield species_data
-#
-#     species_data.delete(session=session)
-#
+
+@contextlib.contextmanager
+def dummy_owner_list(nick_email_list=None):
+
+    nick_email_list = nick_email_list or [('testuser', 'tester@comp.any')]
+
+    with dummy_user_list(nick_email_list=nick_email_list) as user_data_list:
+        owner_list = []
+
+        for user_data in user_data_list:
+            # generating a owner from hypothesis data via marshmallow
+            owner_loaded = schemas.owner_schema.load({'user_id': user_data.id})
+            owner = owner_loaded.data
+
+            # writing to DB
+            owner.save()
+
+            owner_list.append(owner)
+
+        yield [schemas.owner_schema.dump(o).data for o in owner_list]
+
+        for o in owner_list:
+            o.delete()
+
+
+@contextlib.contextmanager
+def dummy_species(name=None, happy_rate=None, hunger_rate=None):
+
+    # generating a species from hypothesis data via marshmallow
+    species_loaded = schemas.species_schema.load({'name': name or 'testspecies', 'happy_rate': happy_rate or 5, 'hunger_rate': hunger_rate or 23})
+    species = species_loaded.data
+
+    # writing to DB
+    species.save()
+
+    yield schemas.species_schema.dump(species).data
+
+    species.delete()
+
 #
 # @contextlib.contextmanager
 # def dummy_animal(session):

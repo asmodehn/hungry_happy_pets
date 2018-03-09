@@ -47,8 +47,8 @@ class Animal(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255))
-    happy = db.Column(db.Integer())
-    hungry = db.Column(db.Integer())
+    happy = db.Column(db.Integer(), default=0)
+    hungry = db.Column(db.Integer(), default=0)
     owner_id = db.Column(db.Integer, db.ForeignKey('owners.id'), nullable=True)  # allow orphan pets
     species_id = db.Column(db.Integer, db.ForeignKey('species.id'), nullable=False)
 
@@ -71,7 +71,7 @@ class Animal(db.Model):
             self.commit(session=session)
 
     @staticmethod
-    def get_all():
+    def all():
         return Animal.query.all()
 
     def delete(self, session=None, commit=True):
