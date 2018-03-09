@@ -1,5 +1,8 @@
 Hungry Happy Pets
 
+.. image:: https://travis-ci.org/asmodehn/hungry_happy_pets.svg?branch=master
+    :target: https://travis-ci.org/asmodehn/hungry_happy_pets
+
 A simple flask-based, heroku-ready, backend REST API.
 
 Just run it Now !
