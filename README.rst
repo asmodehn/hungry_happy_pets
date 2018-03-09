@@ -28,13 +28,21 @@ Everyday Dev
 
 flask run
 
+Testing
+-------
 
-Deploy
-======
+pytest
+
+
+Deploy - Staging
+================
 
 Heroku Local
 ------------
 heroku local
+
+Deploy - Production
+===================
 
 Heroku First Timer (only once)
 ------------------
